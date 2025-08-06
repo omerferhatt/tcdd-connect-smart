@@ -907,16 +907,8 @@ class TCDDApiService {
           // Get available capacity from booking classes and availabilities
           let availableSeats = 0;
           
-          // Try to get seats from trainLeg's cabinClassAvailabilities (more accurate)
-          if (trainLeg.cabinClassAvailabilities && trainLeg.cabinClassAvailabilities.length > 0) {
-            availableSeats = trainLeg.cabinClassAvailabilities.reduce((sum, cabinAvail) => sum + cabinAvail.availabilityCount, 0);
-          } 
-          // Fallback to train's bookingClassCapacities
-          else if (train.bookingClassCapacities && train.bookingClassCapacities.length > 0) {
-            availableSeats = train.bookingClassCapacities.reduce((sum, capacity) => sum + capacity.capacity, 0);
-          }
-          // Try availability.cars if available
-          else if (availability.cars && availability.cars.length > 0) {
+          // Try to get seats from availability.cars first (most accurate for available seats)
+          if (availability.cars && availability.cars.length > 0) {
             for (const car of availability.cars) {
               if (car.availabilities && car.availabilities.length > 0) {
                 for (const carAvail of car.availabilities) {
@@ -924,6 +916,15 @@ class TCDDApiService {
                 }
               }
             }
+          }
+          // Fallback to trainLeg's cabinClassAvailabilities (available seats per cabin class)
+          else if (trainLeg.cabinClassAvailabilities && trainLeg.cabinClassAvailabilities.length > 0) {
+            availableSeats = trainLeg.cabinClassAvailabilities.reduce((sum, cabinAvail) => sum + cabinAvail.availabilityCount, 0);
+          } 
+          // Last fallback to train's bookingClassCapacities (total capacity, not available)
+          else if (train.bookingClassCapacities && train.bookingClassCapacities.length > 0) {
+            // Note: This is capacity, not availability - might not be accurate for actual available seats
+            availableSeats = train.bookingClassCapacities.reduce((sum, capacity) => sum + capacity.capacity, 0);
           }
           
           trains.push({

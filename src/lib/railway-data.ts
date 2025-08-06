@@ -18,6 +18,7 @@ export interface RouteSegment {
   trainNumber: string;
   price: number; // TL
   availableSeats?: number; // Add available seats info
+  departureTimestamp?: number; // For accurate sorting
 }
 
 export interface Journey {
@@ -244,11 +245,10 @@ export async function searchTrainsWithAPI(fromStation: Station, toStation: Stati
       // Format date for API (YYYY-MM-DD format) - ensure correct date formatting
       let dateString = '';
       if (departureDate) {
-        // Create new date to avoid mutation and ensure local date
-        const localDate = new Date(departureDate.getTime() - (departureDate.getTimezoneOffset() * 60000));
-        const year = localDate.getFullYear();
-        const month = (localDate.getMonth() + 1).toString().padStart(2, '0');
-        const day = localDate.getDate().toString().padStart(2, '0');
+        // Use the date directly without timezone adjustment to prevent date shifting
+        const year = departureDate.getFullYear();
+        const month = (departureDate.getMonth() + 1).toString().padStart(2, '0');
+        const day = departureDate.getDate().toString().padStart(2, '0');
         dateString = `${year}-${month}-${day}`;
         console.log(`Using selected date: ${dateString} from input: ${departureDate.toISOString()}`);
       } else {
@@ -281,7 +281,8 @@ export async function searchTrainsWithAPI(fromStation: Station, toStation: Stati
             duration: train.duration || 0,
             trainNumber: train.trainNumber || train.trainName || 'Unknown',
             price: train.price || 0,
-            availableSeats: train.availableSeats || 0
+            availableSeats: train.availableSeats || 0,
+            departureTimestamp: train.departureTimestamp || 0
           };
           
           journeys.push({
@@ -318,9 +319,9 @@ export async function searchTrainsWithAPI(fromStation: Station, toStation: Stati
     if (a.connectionCount !== b.connectionCount) {
       return a.connectionCount - b.connectionCount; // Prefer direct routes
     }
-    // Parse departure times for proper sorting
-    const aTime = parseTimeToMinutes(a.segments[0].departure);
-    const bTime = parseTimeToMinutes(b.segments[0].departure);
+    // Use timestamp if available, otherwise parse time strings
+    const aTime = a.segments[0].departureTimestamp || parseTimeToMinutes(a.segments[0].departure);
+    const bTime = b.segments[0].departureTimestamp || parseTimeToMinutes(b.segments[0].departure);
     return aTime - bTime;
   }).slice(0, 10);
 }
@@ -335,10 +336,10 @@ async function findConnectedRoutesWithAPI(
   // Format date for API - use the same logic as main search
   let dateStr = '';
   if (departureDate) {
-    const localDate = new Date(departureDate.getTime() - (departureDate.getTimezoneOffset() * 60000));
-    const year = localDate.getFullYear();
-    const month = (localDate.getMonth() + 1).toString().padStart(2, '0');
-    const day = localDate.getDate().toString().padStart(2, '0');
+    // Use the date directly without timezone adjustment to prevent date shifting
+    const year = departureDate.getFullYear();
+    const month = (departureDate.getMonth() + 1).toString().padStart(2, '0');
+    const day = departureDate.getDate().toString().padStart(2, '0');
     dateStr = `${year}-${month}-${day}`;
   } else {
     const tomorrow = new Date();
@@ -418,7 +419,8 @@ async function findConnectedRoutesWithAPI(
                 duration: firstTrain.duration || 0,
                 trainNumber: firstTrain.trainNumber || firstTrain.trainName || 'Unknown',
                 price: firstTrain.price || 0,
-                availableSeats: firstTrain.availableSeats || 0
+                availableSeats: firstTrain.availableSeats || 0,
+                departureTimestamp: firstTrain.departureTimestamp || 0
               };
               
               const secondSegment: RouteSegment = {
@@ -430,7 +432,8 @@ async function findConnectedRoutesWithAPI(
                 duration: secondTrain.duration || 0,
                 trainNumber: secondTrain.trainNumber || secondTrain.trainName || 'Unknown',
                 price: secondTrain.price || 0,
-                availableSeats: secondTrain.availableSeats || 0
+                availableSeats: secondTrain.availableSeats || 0,
+                departureTimestamp: secondTrain.departureTimestamp || 0
               };
               
               const totalDuration = (firstTrain.duration || 0) + (secondTrain.duration || 0) + connectionTime;

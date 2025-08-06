@@ -93,9 +93,9 @@ export function DateTimePicker({
             }}
             initialFocus
             fixedWeeks={true}
-            showOutsideDays={false}
+            showOutsideDays={true}
             className="rounded-md border"
-            weekStartsOn={1} // Monday
+            weekStartsOn={1}
           />
         </PopoverContent>
       </Popover>
