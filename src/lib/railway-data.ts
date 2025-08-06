@@ -236,7 +236,7 @@ export async function searchTrainsWithAPI(fromStation: Station, toStation: Stati
   
   if (fromStation.tcddId && toStation.tcddId) {
     try {
-      // Format date for API (DD-MM-YYYY format)
+      // Format date for API (DD-MM-YYYY format as required by TCDD API)
       let dateString = '';
       if (departureDate) {
         const day = departureDate.getDate().toString().padStart(2, '0');
@@ -244,13 +244,16 @@ export async function searchTrainsWithAPI(fromStation: Station, toStation: Stati
         const year = departureDate.getFullYear();
         dateString = `${day}-${month}-${year}`;
       } else {
-        // Use today if no date provided
-        const today = new Date();
-        const day = today.getDate().toString().padStart(2, '0');
-        const month = (today.getMonth() + 1).toString().padStart(2, '0');
-        const year = today.getFullYear();
+        // Use tomorrow if no date provided (TCDD doesn't allow same-day booking typically)
+        const tomorrow = new Date();
+        tomorrow.setDate(tomorrow.getDate() + 1);
+        const day = tomorrow.getDate().toString().padStart(2, '0');
+        const month = (tomorrow.getMonth() + 1).toString().padStart(2, '0');
+        const year = tomorrow.getFullYear();
         dateString = `${day}-${month}-${year}`;
       }
+      
+      console.log(`Searching TCDD API: ${fromStation.name} -> ${toStation.name} on ${dateString}`);
       
       const apiResponse = await TCDDApiService.searchTrainAvailability(
         fromStation.tcddId,
@@ -280,24 +283,37 @@ export async function searchTrainsWithAPI(fromStation: Station, toStation: Stati
             connectionCount: 0
           });
         });
+        
+        console.log(`Found ${journeys.length} direct routes from API`);
+      } else {
+        console.log('No direct routes found from API, message:', apiResponse.message);
       }
     } catch (error) {
       console.warn('API search failed, falling back to mock data:', error);
+      throw error; // Re-throw to trigger fallback in calling code
     }
+  } else {
+    console.log('Stations do not have TCDD IDs, using mock data');
+    throw new Error('Stations do not have TCDD API IDs');
   }
   
   // If API didn't return results, fall back to mock data
   if (journeys.length === 0) {
+    console.log('No API results, falling back to mock data');
     return findConnectedRoutes(fromStation.id, toStation.id, 2);
   }
   
   // Try to find connecting routes through API for intermediate stations
-  await findConnectedRoutesWithAPI(fromStation, toStation, journeys);
+  // This is complex and would require multiple API calls, so for now we'll skip it
+  // await findConnectedRoutesWithAPI(fromStation, toStation, journeys);
   
   return journeys.sort((a, b) => {
     if (a.totalDuration !== b.totalDuration) {
       return a.totalDuration - b.totalDuration;
     }
+    return a.connectionCount - b.connectionCount;
+  }).slice(0, 10);
+}
     return a.connectionCount - b.connectionCount;
   }).slice(0, 10);
 }

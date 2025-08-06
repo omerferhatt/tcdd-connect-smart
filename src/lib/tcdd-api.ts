@@ -113,13 +113,14 @@ class TCDDApiService {
         throw new Error('Invalid station IDs');
       }
 
+      // Format date correctly for TCDD API (DD-MM-YYYY HH:mm:ss)
       const requestBody: TCDDSearchRequest = {
         searchRoutes: [{
           departureStationId: fromStationId,
           departureStationName: fromStation.name,
           arrivalStationId: toStationId,
           arrivalStationName: toStation.name,
-          departureDate: `${departureDate} 12:00:00`
+          departureDate: `${departureDate} 09:00:00`
         }],
         passengerTypeCounts: [{
           id: 0, // Adult passenger type
@@ -135,15 +136,22 @@ class TCDDApiService {
           'Accept': 'application/json, text/plain, */*',
           'Accept-Language': 'tr',
           'Authorization': token,
+          'Connection': 'keep-alive',
           'Content-Type': 'application/json',
           'Origin': 'https://ebilet.tcddtasimacilik.gov.tr',
-          'User-Agent': 'Mozilla/5.0 (compatible; TCDDConnectedTravels/1.0)',
+          'Sec-Fetch-Dest': 'empty',
+          'Sec-Fetch-Mode': 'cors',
+          'Sec-Fetch-Site': 'same-site',
+          'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/138.0.0.0 Safari/537.36',
           'unit-id': this.UNIT_ID
         },
         body: JSON.stringify(requestBody)
       });
 
       if (!response.ok) {
+        if (response.status === 401) {
+          throw new Error('Authentication failed. Please check your token.');
+        }
         throw new Error(`HTTP ${response.status}: ${response.statusText}`);
       }
 
@@ -166,21 +174,69 @@ class TCDDApiService {
   }
 
   private static transformApiResponse(apiData: any): TCDDTrainAvailability[] {
-    // Transform the TCDD API response to our internal format
-    // The actual structure would depend on the API response format
-    if (!Array.isArray(apiData)) {
+    // Handle TCDD API response structure
+    if (!apiData) return [];
+    
+    // Check if response has routes or trains array
+    let trains = [];
+    if (Array.isArray(apiData)) {
+      trains = apiData;
+    } else if (apiData.routes && Array.isArray(apiData.routes)) {
+      trains = apiData.routes;
+    } else if (apiData.data && Array.isArray(apiData.data)) {
+      trains = apiData.data;
+    } else if (apiData.trains && Array.isArray(apiData.trains)) {
+      trains = apiData.trains;
+    } else {
+      console.warn('Unexpected API response format:', apiData);
       return [];
     }
 
-    return apiData.map((train: any) => ({
-      trainNumber: train.trainNumber || train.trainName || 'Unknown',
-      departureTime: train.departureTime || '00:00',
-      arrivalTime: train.arrivalTime || '00:00',
-      duration: train.duration || 0,
-      price: train.price || 0,
-      availableSeats: train.availableSeats || 0,
-      wagonType: train.wagonType || 'Standard'
-    }));
+    return trains.map((train: any) => {
+      // Handle different possible field names from TCDD API
+      const trainNumber = train.trainNumber || train.trainName || train.number || 'Bilinmiyor';
+      const departureTime = train.departureTime || train.departure || train.kalkis || '00:00';
+      const arrivalTime = train.arrivalTime || train.arrival || train.varis || '00:00';
+      
+      // Calculate duration if not provided
+      let duration = train.duration || train.sure || 0;
+      if (!duration && departureTime && arrivalTime) {
+        try {
+          const [depHour, depMin] = departureTime.split(':').map(Number);
+          const [arrHour, arrMin] = arrivalTime.split(':').map(Number);
+          duration = (arrHour * 60 + arrMin) - (depHour * 60 + depMin);
+          if (duration < 0) duration += 24 * 60; // Handle next day arrival
+        } catch (e) {
+          duration = 0;
+        }
+      }
+      
+      // Handle price - TCDD API might return price in different formats
+      let price = 0;
+      if (train.price !== undefined) {
+        price = typeof train.price === 'number' ? train.price : parseFloat(train.price) || 0;
+      } else if (train.fiyat !== undefined) {
+        price = typeof train.fiyat === 'number' ? train.fiyat : parseFloat(train.fiyat) || 0;
+      } else if (train.minPrice !== undefined) {
+        price = typeof train.minPrice === 'number' ? train.minPrice : parseFloat(train.minPrice) || 0;
+      }
+      
+      // Handle available seats
+      const availableSeats = train.availableSeats || train.bos_koltuk || train.capacity || 0;
+      
+      // Handle wagon type
+      const wagonType = train.wagonType || train.vagon_tipi || train.type || 'Standart';
+
+      return {
+        trainNumber,
+        departureTime,
+        arrivalTime,
+        duration,
+        price,
+        availableSeats,
+        wagonType
+      };
+    }).filter(train => train.trainNumber !== 'Bilinmiyor'); // Filter out invalid entries
   }
 
   static findStationByName(name: string): TCDDStation | undefined {

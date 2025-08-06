@@ -86,6 +86,7 @@ export function SearchForm({ onSearch, loading }: SearchFormProps) {
           {/* Date Selection */}
           <div className="grid grid-cols-1 md:grid-cols-1 gap-4">
             <DateTimePicker
+              key={`date-picker-${departureDate.getTime()}`} // Force re-render on date change
               label="Gidiş Tarihi"
               value={departureDate}
               onChange={setDepartureDate}

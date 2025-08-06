@@ -16,6 +16,7 @@ function Calendar({
     <DayPicker
       showOutsideDays={showOutsideDays}
       className={cn("p-3", className)}
+      weekStartsOn={1} // Start week on Monday
       classNames={{
         months: "flex flex-col sm:flex-row gap-2",
         month: "flex flex-col gap-4",
@@ -28,14 +29,14 @@ function Calendar({
         ),
         nav_button_previous: "absolute left-1",
         nav_button_next: "absolute right-1",
-        table: "w-full border-collapse",
-        head_row: "flex",
+        table: "w-full border-collapse min-w-[252px]",
+        head_row: "flex w-full",
         head_cell:
-          "text-muted-foreground rounded-md w-8 h-8 font-normal text-[0.8rem] flex items-center justify-center",
+          "text-muted-foreground rounded-md w-9 h-8 font-normal text-[0.8rem] flex items-center justify-center flex-1",
         row: "flex w-full mt-2",
         cell: cn(
           "relative p-0 text-center text-sm focus-within:relative focus-within:z-20 [&:has([aria-selected])]:bg-accent [&:has([aria-selected].day-range-end)]:rounded-r-md",
-          "h-8 w-8 flex items-center justify-center",
+          "h-8 w-9 flex items-center justify-center flex-1",
           props.mode === "range"
             ? "[&:has(>.day-range-end)]:rounded-r-md [&:has(>.day-range-start)]:rounded-l-md first:[&:has([aria-selected])]:rounded-l-md last:[&:has([aria-selected])]:rounded-r-md"
             : "[&:has([aria-selected])]:rounded-md"

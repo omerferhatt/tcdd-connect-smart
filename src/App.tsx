@@ -39,10 +39,25 @@ function App() {
         try {
           results = await searchTrainsWithAPI(fromStation, toStation, departureDate);
           setApiStatus('connected');
-          toast.success('TCDD API\'den gerçek veriler alındı');
+          if (results.length > 0) {
+            toast.success('TCDD API\'den gerçek veriler alındı');
+          } else {
+            toast.info('TCDD API\'den sonuç gelmedi, demo veriler kullanılıyor');
+            // Fall back to mock data
+            const { findConnectedRoutes } = await import('./lib/railway-data');
+            results = findConnectedRoutes(fromStation.id, toStation.id, 2);
+          }
         } catch (error) {
           setApiStatus('error');
-          toast.warning('TCDD API\'ye bağlanılamadı, demo veriler kullanılıyor');
+          console.error('API Error Details:', error);
+          
+          const errorMessage = error instanceof Error ? error.message : 'Bilinmeyen hata';
+          if (errorMessage.includes('Authentication')) {
+            toast.error('TCDD API kimlik doğrulama hatası. API Ayarları\'ndan geçerli token girin.');
+          } else {
+            toast.warning('TCDD API\'ye bağlanılamadı, demo veriler kullanılıyor');
+          }
+          
           // Fall back to mock data
           const { findConnectedRoutes } = await import('./lib/railway-data');
           results = findConnectedRoutes(fromStation.id, toStation.id, 2);
@@ -149,8 +164,8 @@ function App() {
             
             {useRealAPI && (
               <div className="text-xs text-muted-foreground bg-muted/50 rounded p-2 max-w-md mx-auto">
-                ⚠️ Gerçek API kullanımı için TCDD hesabınızla giriş yapmanız gerekir.
-                Şu anda demo veriler kullanılmaktadır.
+                ⚠️ Gerçek API kullanımı için TCDD hesabınızla giriş yapmanız ve geçerli bir JWT token almanız gerekir.
+                Token yoksa demo veriler kullanılır. "API Ayarları" butonundan token ekleyebilirsiniz.
               </div>
             )}
           </div>

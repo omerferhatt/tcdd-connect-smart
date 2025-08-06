@@ -36,8 +36,9 @@ export function DateTimePicker({
 
   const handleDateSelect = (selectedDate: Date | undefined) => {
     if (selectedDate) {
-      // Keep the same time but update the date
+      // Create a new date object to avoid mutation
       const newDate = new Date(selectedDate);
+      // Keep the same time but update the date
       newDate.setHours(value.getHours(), value.getMinutes(), 0, 0);
       onChange(newDate);
       setIsOpen(false);
@@ -85,6 +86,7 @@ export function DateTimePicker({
               return false;
             }}
             initialFocus
+            fixedWeeks
           />
         </PopoverContent>
       </Popover>
