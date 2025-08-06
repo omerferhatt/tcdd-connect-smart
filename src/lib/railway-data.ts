@@ -1,8 +1,11 @@
+import TCDDApiService, { TCDDTrainAvailability } from './tcdd-api';
+
 export interface Station {
   id: string;
   name: string;
   city: string;
   region: string;
+  tcddId?: number; // TCDD API station ID
 }
 
 export interface RouteSegment {
@@ -25,31 +28,33 @@ export interface Journey {
 }
 
 export const TURKISH_STATIONS: Station[] = [
-  { id: 'ist', name: 'İstanbul (Pendik)', city: 'İstanbul', region: 'Marmara' },
-  { id: 'ank', name: 'Ankara', city: 'Ankara', region: 'İç Anadolu' },
-  { id: 'koc', name: 'Kocaeli (İzmit)', city: 'Kocaeli', region: 'Marmara' },
-  { id: 'esk', name: 'Eskişehir', city: 'Eskişehir', region: 'İç Anadolu' },
-  { id: 'kon', name: 'Konya', city: 'Konya', region: 'İç Anadolu' },
-  { id: 'izm', name: 'İzmir (Basmane)', city: 'İzmir', region: 'Ege' },
-  { id: 'ada', name: 'Adana', city: 'Adana', region: 'Akdeniz' },
-  { id: 'mer', name: 'Mersin', city: 'Mersin', region: 'Akdeniz' },
-  { id: 'kay', name: 'Kayseri', city: 'Kayseri', region: 'İç Anadolu' },
-  { id: 'siv', name: 'Sivas', city: 'Sivas', region: 'İç Anadolu' },
-  { id: 'sam', name: 'Samsun', city: 'Samsun', region: 'Karadeniz' },
-  { id: 'mal', name: 'Malatya', city: 'Malatya', region: 'Doğu Anadolu' },
-  { id: 'kar', name: 'Kars', city: 'Kars', region: 'Doğu Anadolu' },
-  { id: 'erz', name: 'Erzurum', city: 'Erzurum', region: 'Doğu Anadolu' },
-  { id: 'eli', name: 'Elazığ', city: 'Elazığ', region: 'Doğu Anadolu' },
-  { id: 'div', name: 'Divriği', city: 'Sivas', region: 'İç Anadolu' },
-  { id: 'afy', name: 'Afyonkarahisar', city: 'Afyonkarahisar', region: 'Ege' },
-  { id: 'den', name: 'Denizli', city: 'Denizli', region: 'Ege' },
-  { id: 'bal', name: 'Balıkesir', city: 'Balıkesir', region: 'Marmara' },
-  { id: 'ban', name: 'Bandırma', city: 'Balıkesir', region: 'Marmara' },
-  { id: 'zon', name: 'Zonguldak', city: 'Zonguldak', region: 'Karadeniz' },
-  { id: 'kas', name: 'Kastamonu', city: 'Kastamonu', region: 'Karadeniz' },
-  { id: 'cank', name: 'Çankırı', city: 'Çankırı', region: 'İç Anadolu' },
-  { id: 'ama', name: 'Amasya', city: 'Amasya', region: 'Karadeniz' },
-  { id: 'tok', name: 'Tokat', city: 'Tokat', region: 'Karadeniz' }
+  { id: 'ist', name: 'İstanbul (Söğütlüçeşme)', city: 'İstanbul', region: 'Marmara', tcddId: 1325 },
+  { id: 'ist-pendik', name: 'İstanbul (Pendik)', city: 'İstanbul', region: 'Marmara', tcddId: 1322 },
+  { id: 'ist-halkali', name: 'İstanbul (Halkalı)', city: 'İstanbul', region: 'Marmara', tcddId: 1326 },
+  { id: 'ank', name: 'Ankara Gar', city: 'Ankara', region: 'İç Anadolu', tcddId: 98 },
+  { id: 'koc', name: 'Kocaeli (İzmit)', city: 'Kocaeli', region: 'Marmara', tcddId: 82 },
+  { id: 'esk', name: 'Eskişehir', city: 'Eskişehir', region: 'İç Anadolu', tcddId: 87 },
+  { id: 'kon', name: 'Konya', city: 'Konya', region: 'İç Anadolu', tcddId: 103 },
+  { id: 'izm', name: 'İzmir (Basmane)', city: 'İzmir', region: 'Ege', tcddId: 180 },
+  { id: 'izm-alsancak', name: 'İzmir (Alsancak)', city: 'İzmir', region: 'Ege', tcddId: 181 },
+  { id: 'ada', name: 'Adana', city: 'Adana', region: 'Akdeniz', tcddId: 160 },
+  { id: 'mer', name: 'Mersin', city: 'Mersin', region: 'Akdeniz', tcddId: 170 },
+  { id: 'kay', name: 'Kayseri', city: 'Kayseri', region: 'İç Anadolu', tcddId: 130 },
+  { id: 'siv', name: 'Sivas', city: 'Sivas', region: 'İç Anadolu', tcddId: 140 },
+  { id: 'sam', name: 'Samsun', city: 'Samsun', region: 'Karadeniz', tcddId: 120 },
+  { id: 'mal', name: 'Malatya', city: 'Malatya', region: 'Doğu Anadolu', tcddId: 147 },
+  { id: 'kar', name: 'Kars', city: 'Kars', region: 'Doğu Anadolu', tcddId: 151 },
+  { id: 'erz', name: 'Erzurum', city: 'Erzurum', region: 'Doğu Anadolu', tcddId: 150 },
+  { id: 'eli', name: 'Elazığ', city: 'Elazığ', region: 'Doğu Anadolu', tcddId: 148 },
+  { id: 'afy', name: 'Afyonkarahisar', city: 'Afyonkarahisar', region: 'Ege', tcddId: 89 },
+  { id: 'den', name: 'Denizli', city: 'Denizli', region: 'Ege', tcddId: 185 },
+  { id: 'bal', name: 'Balıkesir', city: 'Balıkesir', region: 'Marmara', tcddId: 77 },
+  { id: 'ban', name: 'Bandırma', city: 'Balıkesir', region: 'Marmara', tcddId: 79 },
+  { id: 'zon', name: 'Zonguldak', city: 'Zonguldak', region: 'Karadeniz', tcddId: 200 },
+  { id: 'kut', name: 'Kütahya', city: 'Kütahya', region: 'Ege', tcddId: 92 },
+  { id: 'cank', name: 'Çankırı', city: 'Çankırı', region: 'İç Anadolu', tcddId: 95 },
+  { id: 'ama', name: 'Amasya', city: 'Amasya', region: 'Karadeniz', tcddId: 125 },
+  { id: 'tok', name: 'Tokat', city: 'Tokat', region: 'Karadeniz', tcddId: 145 }
 ];
 
 // Mock route data - in a real app, this would come from TCDD API
@@ -221,4 +226,142 @@ export function formatDuration(minutes: number): string {
 
 export function formatPrice(price: number): string {
   return `${price} ₺`;
+}
+
+// API Integration Functions
+
+export async function searchTrainsWithAPI(fromStation: Station, toStation: Station): Promise<Journey[]> {
+  // First try direct routes from API
+  const journeys: Journey[] = [];
+  
+  if (fromStation.tcddId && toStation.tcddId) {
+    try {
+      const apiResponse = await TCDDApiService.searchTrainAvailability(
+        fromStation.tcddId,
+        toStation.tcddId
+      );
+      
+      if (apiResponse.success && apiResponse.data.length > 0) {
+        // Convert API response to our Journey format
+        apiResponse.data.forEach(train => {
+          const segment: RouteSegment = {
+            id: `api-${train.trainNumber}`,
+            from: fromStation,
+            to: toStation,
+            departure: train.departureTime,
+            arrival: train.arrivalTime,
+            duration: train.duration,
+            trainNumber: train.trainNumber,
+            price: train.price
+          };
+          
+          journeys.push({
+            id: `api-direct-${train.trainNumber}`,
+            segments: [segment],
+            totalDuration: train.duration,
+            totalPrice: train.price,
+            connectionCount: 0
+          });
+        });
+      }
+    } catch (error) {
+      console.warn('API search failed, falling back to mock data:', error);
+    }
+  }
+  
+  // If API didn't return results, fall back to mock data
+  if (journeys.length === 0) {
+    return findConnectedRoutes(fromStation.id, toStation.id, 2);
+  }
+  
+  // Try to find connecting routes through API for intermediate stations
+  await findConnectedRoutesWithAPI(fromStation, toStation, journeys);
+  
+  return journeys.sort((a, b) => {
+    if (a.totalDuration !== b.totalDuration) {
+      return a.totalDuration - b.totalDuration;
+    }
+    return a.connectionCount - b.connectionCount;
+  }).slice(0, 10);
+}
+
+async function findConnectedRoutesWithAPI(
+  fromStation: Station, 
+  toStation: Station, 
+  journeys: Journey[]
+): Promise<void> {
+  // Try to find one-connection routes through major hubs
+  const majorHubs = TURKISH_STATIONS.filter(station => 
+    ['ank', 'esk', 'izm', 'ada', 'koc'].includes(station.id) &&
+    station.id !== fromStation.id && 
+    station.id !== toStation.id
+  );
+  
+  for (const hub of majorHubs) {
+    if (!hub.tcddId || !fromStation.tcddId || !toStation.tcddId) continue;
+    
+    try {
+      // Search from origin to hub
+      const firstLegResponse = await TCDDApiService.searchTrainAvailability(
+        fromStation.tcddId,
+        hub.tcddId
+      );
+      
+      // Search from hub to destination
+      const secondLegResponse = await TCDDApiService.searchTrainAvailability(
+        hub.tcddId,
+        toStation.tcddId
+      );
+      
+      if (firstLegResponse.success && secondLegResponse.success &&
+          firstLegResponse.data.length > 0 && secondLegResponse.data.length > 0) {
+        
+        // Combine compatible train schedules
+        firstLegResponse.data.forEach(firstTrain => {
+          secondLegResponse.data.forEach(secondTrain => {
+            const firstArrival = parseTime(firstTrain.arrivalTime);
+            const secondDeparture = parseTime(secondTrain.departureTime);
+            
+            let transferTime = secondDeparture - firstArrival;
+            if (transferTime < 0) transferTime += 24 * 60; // Next day
+            
+            // Check if connection is feasible (30 min to 8 hours)
+            if (transferTime >= 30 && transferTime <= 8 * 60) {
+              const firstSegment: RouteSegment = {
+                id: `api-${firstTrain.trainNumber}-1`,
+                from: fromStation,
+                to: hub,
+                departure: firstTrain.departureTime,
+                arrival: firstTrain.arrivalTime,
+                duration: firstTrain.duration,
+                trainNumber: firstTrain.trainNumber,
+                price: firstTrain.price
+              };
+              
+              const secondSegment: RouteSegment = {
+                id: `api-${secondTrain.trainNumber}-2`,
+                from: hub,
+                to: toStation,
+                departure: secondTrain.departureTime,
+                arrival: secondTrain.arrivalTime,
+                duration: secondTrain.duration,
+                trainNumber: secondTrain.trainNumber,
+                price: secondTrain.price
+              };
+              
+              journeys.push({
+                id: `api-connected-${firstTrain.trainNumber}-${secondTrain.trainNumber}`,
+                segments: [firstSegment, secondSegment],
+                totalDuration: firstTrain.duration + secondTrain.duration + transferTime,
+                totalPrice: firstTrain.price + secondTrain.price,
+                connectionCount: 1
+              });
+            }
+          });
+        });
+      }
+    } catch (error) {
+      console.warn(`Failed to search via ${hub.name}:`, error);
+    }
+  }
 }

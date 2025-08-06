@@ -2,7 +2,10 @@ import React, { useState } from 'react';
 import { useKV } from '@github/spark/hooks';
 import { SearchForm } from './components/SearchForm';
 import { SearchResults } from './components/SearchResults';
-import { Station, Journey, findConnectedRoutes } from './lib/railway-data';
+import { ApiSettingsDialog } from './components/ApiSettingsDialog';
+import { ApiDebugDialog } from './components/ApiDebugDialog';
+import { Station, Journey, searchTrainsWithAPI } from './lib/railway-data';
+import TCDDApiService from './lib/tcdd-api';
 import { Toaster } from '@/components/ui/sonner';
 import { toast } from 'sonner';
 
@@ -18,6 +21,8 @@ function App() {
   const [currentSearch, setCurrentSearch] = useState<{ from: Station; to: Station } | null>(null);
   const [loading, setLoading] = useState(false);
   const [searchHistory, setSearchHistory] = useKV<SearchHistory[]>('search-history', []);
+  const [useRealAPI, setUseRealAPI] = useKV<boolean>('use-real-api', false);
+  const [apiStatus, setApiStatus] = useState<'unknown' | 'connected' | 'error'>('unknown');
 
   const handleSearch = async (fromStation: Station, toStation: Station) => {
     setLoading(true);
@@ -27,7 +32,28 @@ function App() {
       // Simulate API delay for better UX
       await new Promise(resolve => setTimeout(resolve, 1500));
       
-      const results = findConnectedRoutes(fromStation.id, toStation.id, 2);
+      let results: Journey[] = [];
+      
+      if (useRealAPI) {
+        // Try real API first
+        try {
+          results = await searchTrainsWithAPI(fromStation, toStation);
+          setApiStatus('connected');
+          toast.success('TCDD API\'den gerçek veriler alındı');
+        } catch (error) {
+          setApiStatus('error');
+          toast.warning('TCDD API\'ye bağlanılamadı, demo veriler kullanılıyor');
+          // Fall back to mock data
+          const { findConnectedRoutes } = await import('./lib/railway-data');
+          results = findConnectedRoutes(fromStation.id, toStation.id, 2);
+        }
+      } else {
+        // Use mock data
+        const { findConnectedRoutes } = await import('./lib/railway-data');
+        results = findConnectedRoutes(fromStation.id, toStation.id, 2);
+        setApiStatus('unknown');
+      }
+      
       setJourneys(results);
       
       // Add to search history
@@ -60,6 +86,7 @@ function App() {
     } catch (error) {
       toast.error('Arama sırasında bir hata oluştu');
       console.error('Search error:', error);
+      setApiStatus('error');
     } finally {
       setLoading(false);
     }
@@ -70,13 +97,62 @@ function App() {
       {/* Header */}
       <header className="border-b bg-card">
         <div className="container mx-auto px-4 py-6">
-          <div className="text-center">
-            <h1 className="text-3xl font-bold text-primary mb-2">
-              TCDD Bağlantılı Seyahatler
-            </h1>
-            <p className="text-muted-foreground">
-              Resmi sitede görünmeyen aktarmalı tren bağlantılarını keşfedin
-            </p>
+          <div className="text-center space-y-4">
+            <div>
+              <h1 className="text-3xl font-bold text-primary mb-2">
+                TCDD Bağlantılı Seyahatler
+              </h1>
+              <p className="text-muted-foreground">
+                Resmi sitede görünmeyen aktarmalı tren bağlantılarını keşfedin
+              </p>
+            </div>
+            
+            {/* API Status and Settings */}
+            <div className="flex flex-wrap items-center justify-center gap-2 text-sm">
+              <div className="flex items-center gap-2">
+                <div className={`w-2 h-2 rounded-full ${
+                  apiStatus === 'connected' ? 'bg-green-500' : 
+                  apiStatus === 'error' ? 'bg-red-500' : 'bg-gray-400'
+                }`} />
+                <span className="text-muted-foreground">
+                  {apiStatus === 'connected' ? 'Gerçek API Bağlı' : 
+                   apiStatus === 'error' ? 'API Hatası' : 'Demo Modu'}
+                </span>
+              </div>
+              
+              <div className="flex items-center gap-2">
+                <label className="text-muted-foreground cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={useRealAPI}
+                    onChange={(e) => setUseRealAPI(e.target.checked)}
+                    className="mr-1"
+                  />
+                  Gerçek TCDD API Kullan
+                </label>
+              </div>
+              
+              <div className="flex gap-2">
+                <ApiSettingsDialog 
+                  onAuthSuccess={() => {
+                    setApiStatus('connected');
+                    toast.success('API bağlantısı kuruldu!');
+                  }}
+                />
+                
+                <ApiDebugDialog 
+                  fromStation={currentSearch?.from}
+                  toStation={currentSearch?.to}
+                />
+              </div>
+            </div>
+            
+            {useRealAPI && (
+              <div className="text-xs text-muted-foreground bg-muted/50 rounded p-2 max-w-md mx-auto">
+                ⚠️ Gerçek API kullanımı için TCDD hesabınızla giriş yapmanız gerekir.
+                Şu anda demo veriler kullanılmaktadır.
+              </div>
+            )}
           </div>
         </div>
       </header>
@@ -141,20 +217,28 @@ function App() {
       {/* Footer */}
       <footer className="border-t bg-muted/50 mt-16">
         <div className="container mx-auto px-4 py-6">
-          <div className="text-center text-sm text-muted-foreground">
-            <p>
-              Bu uygulama TCDD'nin resmi bir uygulaması değildir. 
-              Bilet satın almak için{' '}
-              <a 
-                href="https://bilet.tcdd.gov.tr" 
-                target="_blank" 
-                rel="noopener noreferrer"
-                className="text-primary hover:underline"
-              >
-                resmi TCDD web sitesini
-              </a>
-              {' '}kullanın.
-            </p>
+          <div className="text-center space-y-3">
+            <div className="text-sm text-muted-foreground">
+              <p className="mb-2">
+                Bu uygulama TCDD'nin resmi bir uygulaması değildir. 
+                Bilet satın almak için{' '}
+                <a 
+                  href="https://bilet.tcdd.gov.tr" 
+                  target="_blank" 
+                  rel="noopener noreferrer"
+                  className="text-primary hover:underline"
+                >
+                  resmi TCDD web sitesini
+                </a>
+                {' '}kullanın.
+              </p>
+              
+              <div className="text-xs bg-muted rounded p-2 max-w-2xl mx-auto">
+                <strong>API Entegrasyonu:</strong> Bu uygulama TCDD'nin gerçek API'sini kullanabilir. 
+                Gerçek veriler için yukarıdaki "API Ayarları" butonundan geçerli bir JWT token girin. 
+                Token olmadan demo veriler kullanılır.
+              </div>
+            </div>
           </div>
         </div>
       </footer>

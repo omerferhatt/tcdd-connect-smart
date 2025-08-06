@@ -33,8 +33,8 @@ export function SearchForm({ onSearch, loading }: SearchFormProps) {
   return (
     <Card className="w-full max-w-2xl mx-auto">
       <CardHeader>
-        <CardTitle className="text-2xl font-bold text-center">
-          TCDD Bağlantılı Seyahatler
+        <CardTitle className="text-xl font-semibold text-center">
+          Seyahat Arama
         </CardTitle>
         <p className="text-muted-foreground text-center">
           Direkt bilet bulamadığınızda aktarmalı yolculuk seçeneklerini keşfedin
