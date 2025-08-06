@@ -93,11 +93,23 @@ export function DateTimePicker({
               return false;
             }}
             initialFocus
-            fixedWeeks
+            fixedWeeks={true}
             showOutsideDays={false}
             className="rounded-md border"
-            weekStartsOn={1}
-            firstDayOfWeek={1}
+            weekStartsOn={1} // Monday
+            locale={{
+              weekdaysLong: ['Pazar', 'Pazartesi', 'Salı', 'Çarşamba', 'Perşembe', 'Cuma', 'Cumartesi'],
+              weekdaysShort: ['Paz', 'Pzt', 'Sal', 'Çar', 'Per', 'Cum', 'Cmt'],
+              weekdaysNarrow: ['P', 'P', 'S', 'Ç', 'P', 'C', 'C'],
+              monthsLong: [
+                'Ocak', 'Şubat', 'Mart', 'Nisan', 'Mayıs', 'Haziran',
+                'Temmuz', 'Ağustos', 'Eylül', 'Ekim', 'Kasım', 'Aralık'
+              ],
+              monthsShort: [
+                'Oca', 'Şub', 'Mar', 'Nis', 'May', 'Haz',
+                'Tem', 'Ağu', 'Eyl', 'Eki', 'Kas', 'Ara'
+              ]
+            }}
           />
         </PopoverContent>
       </Popover>

@@ -3,63 +3,110 @@
 // Station data from stations.json API
 export interface TCDDStation {
   id: number;
-  stationNumber?: string;
-  areaCode?: number;
+  stationNumber: string;
+  areaCode: number;
   name: string;
-  stationStatus?: {
+  stationStatus: {
     id: number;
     name: string | null;
     detail: string | null;
   };
-  stationType?: {
+  stationType: {
     id: number;
     name: string | null;
     detail: string | null;
   };
-  unitId?: number;
-  cityId?: number;
-  districtId?: number;
-  neighbourhoodId?: number;
-  uicCode?: string | null;
-  technicalUnit?: string;
-  stationChefId?: number;
-  detail?: string | null;
-  showOnQuery?: boolean;
-  passengerDrop?: boolean;
-  ticketSaleActive?: boolean;
-  active?: boolean;
-  email?: string;
-  orangeDeskEmail?: string | null;
-  address?: string;
-  longitude?: number;
-  latitude?: number;
-  altitude?: number;
-  startKm?: number;
-  endKm?: number;
-  showOnMap?: boolean;
-  passengerAdmission?: boolean;
-  disabledAccessibility?: boolean;
-  IATACode?: string | null;
+  unitId: number;
+  cityId: number;
+  districtId: number;
+  neighbourhoodId: number;
+  uicCode: string | null;
+  technicalUnit: string | null;
+  stationChefId: number;
+  detail: string | null;
+  showOnQuery: boolean;
+  passengerDrop: boolean;
+  ticketSaleActive: boolean;
+  active: boolean;
+  email: string;
+  orangeDeskEmail: string | null;
+  address: string;
+  longitude: number;
+  latitude: number;
+  altitude: number;
+  startKm: number;
+  endKm: number;
+  showOnMap: boolean;
+  passengerAdmission: boolean;
+  disabledAccessibility: boolean;
+  phones: string | null;
+  workingDays: string | null;
+  hardwares: string | null;
+  physicalProperties: string | null;
+  stationPlatforms: string | null;
+  salesChannels: Array<{
+    id: number;
+    station: {
+      id: number;
+      stationNumber: string | null;
+      areaCode: number;
+      name: string | null;
+      stationStatus: null;
+      stationType: null;
+      unitId: number;
+      cityId: number;
+      districtId: number;
+      neighbourhoodId: number;
+      uicCode: string | null;
+      technicalUnit: string | null;
+      stationChefId: number;
+      detail: string | null;
+      showOnQuery: boolean;
+      passengerDrop: boolean;
+      ticketSaleActive: boolean;
+      active: boolean;
+      email: string | null;
+      orangeDeskEmail: string | null;
+      address: string | null;
+      longitude: number;
+      latitude: number;
+      altitude: number;
+      startKm: number;
+      endKm: number;
+      showOnMap: boolean;
+      passengerAdmission: boolean;
+      disabledAccessibility: boolean;
+      phones: null;
+      workingDays: null;
+      hardwares: null;
+      physicalProperties: null;
+      stationPlatforms: null;
+      salesChannels: null;
+      IATACode: string | null;
+    };
+    saleChannelId: number;
+  }> | null;
+  IATACode: string | null;
 }
 
 // Station pairs data from station-pairs-INTERNET.json API  
 export interface TCDDStationPair {
   id: number;
-  unitId?: number;
-  areaCode?: number;
+  unitId: number;
+  areaCode: number;
   name: string;
-  stationCode?: string;
-  stationStatus?: {
+  stationCode: string;
+  stationStatus: {
     id: number;
     name: string | null;
     detail: string | null;
   };
-  stationType?: {
+  stationType: {
     id: number;
     name: string | null;
     detail: string | null;
   };
-  district?: {
+  district: {
     id: number;
     name: string;
     city: {
@@ -76,17 +123,18 @@ export interface TCDDStationPair {
     };
     latitude: number;
     longitude: number;
-  };
-  passengerDrop?: boolean;
-  ticketSaleActive?: boolean;
-  longitude?: number;
-  latitude?: number;
-  altitude?: number;
-  international?: boolean;
-  domestic?: boolean;
-  pairs?: number[]; // Array of station IDs this station connects to
-  stationTrainTypes?: string[];
-  IATACode?: string | null;
+  } | null;
+  passengerDrop: boolean;
+  ticketSaleActive: boolean;
+  longitude: number;
+  latitude: number;
+  altitude: number;
+  international: boolean;
+  domestic: boolean;
+  pairs: number[]; // Array of station IDs this station connects to
+  salesChannels: string | null;
+  stationTrainTypes: string[] | null;
+  IATACode: string | null;
 }
 
 export interface TCDDRoute {
@@ -128,8 +176,98 @@ export interface TCDDSegment {
   segment: {
     id: number;
     name: string;
-    departureStation: TCDDStation;
-    arrivalStation: TCDDStation;
+    departureStation: {
+      id: number;
+      stationNumber: string;
+      areaCode: number;
+      name: string;
+      stationStatus: {
+        id: number;
+        name: string | null;
+        detail: string | null;
+      };
+      stationType: {
+        id: number;
+        name: string | null;
+        detail: string | null;
+      };
+      unitId: number;
+      cityId: number;
+      districtId: number;
+      neighbourhoodId: number | string | null;
+      uicCode: string | null;
+      technicalUnit: string | null;
+      stationChefId: number;
+      detail: string | null;
+      showOnQuery: boolean;
+      passengerDrop: boolean;
+      ticketSaleActive: boolean;
+      active: boolean;
+      email: string;
+      orangeDeskEmail: string | null;
+      address: string | null;
+      longitude: number;
+      latitude: number;
+      altitude: number;
+      startKm: number;
+      endKm: number;
+      showOnMap: boolean;
+      passengerAdmission: boolean;
+      disabledAccessibility: boolean;
+      phones: string | null;
+      workingDays: string | null;
+      hardwares: string | null;
+      physicalProperties: string | null;
+      stationPlatforms: string | null;
+      salesChannels: string | null;
+      IATACode: string | null;
+    };
+    arrivalStation: {
+      id: number;
+      stationNumber: string;
+      areaCode: number;
+      name: string;
+      stationStatus: {
+        id: number;
+        name: string | null;
+        detail: string | null;
+      };
+      stationType: {
+        id: number;
+        name: string | null;
+        detail: string | null;
+      };
+      unitId: number;
+      cityId: number;
+      districtId: number;
+      neighbourhoodId: number | string | null;
+      uicCode: string | null;
+      technicalUnit: string | null;
+      stationChefId: number;
+      detail: string | null;
+      showOnQuery: boolean;
+      passengerDrop: boolean;
+      ticketSaleActive: boolean;
+      active: boolean;
+      email: string;
+      orangeDeskEmail: string | null;
+      address: string;
+      longitude: number;
+      latitude: number;
+      altitude: number;
+      startKm: number;
+      endKm: number;
+      showOnMap: boolean;
+      passengerAdmission: boolean;
+      disabledAccessibility: boolean;
+      phones: string | null;
+      workingDays: string | null;
+      hardwares: string | null;
+      physicalProperties: string | null;
+      stationPlatforms: string | null;
+      salesChannels: string | null;
+      IATACode: string | null;
+    };
     lineId: number;
     lineOrder: number;
   };
@@ -159,10 +297,166 @@ export interface TCDDTrain {
 
 export interface TCDDTrainAvailability {
   trains: TCDDTrain[];
+  cars: Array<{
+    id: number;
+    name: string;
+    trainId: number;
+    templateId: number;
+    carIndex: number;
+    unlabeled: boolean;
+    capacity: number;
+    cabinClassId: number;
+    availabilities: Array<{
+      trainCarId: number;
+      trainCarName: string | null;
+      cabinClass: {
+        id: number;
+        code: string;
+        name: string;
+        additionalServices: null;
+        bookingClassModels: null;
+        showAvailabilityOnQuery: boolean;
+      } | null;
+      availability: number;
+      pricingList: Array<{
+        basePricingId: number;
+        bookingClass: {
+          id: number;
+          code: string;
+          name: string;
+          cabinClass: {
+            id: number;
+            code: string | null;
+            name: string | null;
+            additionalServices: null;
+            bookingClassModels: null;
+            showAvailabilityOnQuery: boolean;
+          };
+          fareFamily: {
+            id: number;
+            name: string;
+          };
+        };
+        cabinClassId: number;
+        basePricingType: string;
+        fareBasis: {
+          code: string;
+          factor: number;
+          price: {
+            type: string | null;
+            priceAmount: number;
+            priceCurrency: string;
+          };
+        };
+        basePrice: {
+          type: string | null;
+          priceAmount: number;
+          priceCurrency: string;
+        };
+        crudePrice: {
+          type: string | null;
+          priceAmount: number;
+          priceCurrency: string;
+        };
+        baseTransportationCost: {
+          type: string | null;
+          priceAmount: number;
+          priceCurrency: string;
+        };
+        availability: number;
+      }>;
+      additionalServices: Array<{
+        additionalService: {
+          id: number;
+          additionalServiceTypeId: number;
+          name: string;
+          description: string;
+          code: string;
+          active: boolean;
+          freeForPermi: boolean;
+          actAsGroup: boolean;
+          basePrice: Array<{
+            id: number;
+            additionalServiceId: number;
+            type: string;
+            priceAmount: number;
+            priceCurrency: string;
+            startDate: string;
+            endDate: string;
+          }>;
+          pricingPeriods: string | null;
+        };
+        priceAmount: number;
+        currency: string;
+      }>;
+    }>;
+  }>;
 }
 
 export interface TCDDTrainLeg {
   trainAvailabilities: TCDDTrainAvailability[];
+  trainSegments: Array<{
+    departureStationId: number;
+    arrivalStationId: number;
+    departureTime: string; // "YYYY-MM-DDTHH:mm:ss"
+    arrivalTime: string; // "YYYY-MM-DDTHH:mm:ss"
+  }>;
+  totalDistance: number;
+  availableFareInfo: Array<{
+    fareFamily: {
+      id: number;
+      name: string;
+    };
+    cabinClasses: Array<{
+      cabinClass: {
+        id: number;
+        code: string;
+        name: string;
+        additionalServices: null;
+        bookingClassModels: null;
+        showAvailabilityOnQuery: boolean;
+      };
+      availabilityCount: number;
+      minPrice: number;
+      minPriceCurrency: string;
+      bookingClassAvailabilities: Array<{
+        bookingClass: {
+          id: number;
+          code: string;
+          name: string;
+          cabinClass: {
+            id: number;
+            code: string | null;
+            name: string | null;
+            additionalServices: null;
+            bookingClassModels: null;
+            showAvailabilityOnQuery: boolean;
+          };
+          fareFamily: {
+            id: number;
+            name: string;
+          };
+        };
+        price: number;
+        currency: string;
+        availability: number;
+      }>;
+    }>;
+  }>;
+  cabinClassAvailabilities: Array<{
+    cabinClass: {
+      id: number;
+      code: string;
+      name: string;
+      additionalServices: null;
+      bookingClassModels: null;
+      showAvailabilityOnQuery: boolean;
+    };
+    availabilityCount: number;
+  }>;
+  trainDate: number; // Unix timestamp in milliseconds
+  trainNumber: string;
+  skipsDay: boolean;
 }
 
 export interface TCDDApiResponse {
@@ -173,48 +467,91 @@ export interface TCDDApiResponse {
 
 export interface TCDDSearchResponse {
   trainLegs: TCDDTrainLeg[];
+  totalTripTime: number; // This is in milliseconds
+  minPrice: number;
+  connection: boolean;
+  dayChanged: boolean;
 }
 
 // Cached stations and pairs
 let cachedStations: TCDDStation[] | null = null;
 let cachedStationPairs: TCDDStationPair[] | null = null;
 
-// Known TCDD stations with their API IDs - Updated from real API
+// Known TCDD stations with their API IDs - Simplified fallback structure
+const createFallbackStation = (id: number, name: string): TCDDStation => ({
+  id,
+  name,
+  stationNumber: '',
+  areaCode: 0,
+  stationStatus: { id: 1, name: null, detail: null },
+  stationType: { id: 1, name: null, detail: null },
+  unitId: 0,
+  cityId: 0,
+  districtId: 0,
+  neighbourhoodId: 0,
+  uicCode: null,
+  technicalUnit: null,
+  stationChefId: 0,
+  detail: null,
+  showOnQuery: true,
+  passengerDrop: true,
+  ticketSaleActive: true,
+  active: true,
+  email: '',
+  orangeDeskEmail: null,
+  address: '',
+  longitude: 0,
+  latitude: 0,
+  altitude: 0,
+  startKm: 0,
+  endKm: 0,
+  showOnMap: false,
+  passengerAdmission: false,
+  disabledAccessibility: false,
+  phones: null,
+  workingDays: null,
+  hardwares: null,
+  physicalProperties: null,
+  stationPlatforms: null,
+  salesChannels: null,
+  IATACode: null
+});
+
 export const TCDD_STATIONS: TCDDStation[] = [
-  { id: 98, name: 'ANKARA GAR' },
-  { id: 1325, name: 'İSTANBUL(SÖĞÜTLÜÇEŞME)' },
-  { id: 48, name: 'İSTANBUL(PENDİK)' },
-  { id: 1323, name: 'İSTANBUL(BOSTANCI)' },
-  { id: 1322, name: 'İSTANBUL(HALKALB)' }, 
-  { id: 1327, name: 'İSTANBUL(YEDİKULE)' },
-  { id: 1328, name: 'İSTANBUL(SİRKECİ)' },
-  { id: 20, name: 'GEBZE' },
-  { id: 1135, name: 'İZMİT YHT' },
-  { id: 5, name: 'ARİFİYE' },
-  { id: 87, name: 'ESKİŞEHİR' },
-  { id: 103, name: 'KONYA' },
-  { id: 89, name: 'AFYONKARAHİSAR' },
-  { id: 92, name: 'KÜTAHYA' },
-  { id: 100, name: 'KARAMAN' },
-  { id: 753, name: 'ADANA' },
-  { id: 170, name: 'MERSİN' },
-  { id: 130, name: 'KAYSERİ' },
-  { id: 140, name: 'SİVAS' },
-  { id: 150, name: 'ERZURUM' },
-  { id: 151, name: 'KARS' },
-  { id: 148, name: 'ELAZIĞ' },
-  { id: 147, name: 'MALATYA' },
-  { id: 180, name: 'İZMİR BASMANE' },
-  { id: 181, name: 'İZMİR ALSANCAK' },
-  { id: 185, name: 'DENİZLİ' },
-  { id: 77, name: 'BALIKESİR' },
-  { id: 79, name: 'BANDIRMA' },
-  { id: 200, name: 'ZONGULDAK' },
-  { id: 120, name: 'SAMSUN' },
-  { id: 125, name: 'AMASYA' },
-  { id: 145, name: 'TOKAT' },
-  { id: 95, name: 'ÇANKIRI' },
-  { id: 677, name: 'GÖLCÜK' }
+  createFallbackStation(98, 'ANKARA GAR'),
+  createFallbackStation(1325, 'İSTANBUL(SÖĞÜTLÜÇEŞME)'),
+  createFallbackStation(48, 'İSTANBUL(PENDİK)'),
+  createFallbackStation(1323, 'İSTANBUL(BOSTANCI)'),
+  createFallbackStation(1322, 'İSTANBUL(HALKALB)'),
+  createFallbackStation(1327, 'İSTANBUL(YEDİKULE)'),
+  createFallbackStation(1328, 'İSTANBUL(SİRKECİ)'),
+  createFallbackStation(20, 'GEBZE'),
+  createFallbackStation(1135, 'İZMİT YHT'),
+  createFallbackStation(5, 'ARİFİYE'),
+  createFallbackStation(87, 'ESKİŞEHİR'),
+  createFallbackStation(103, 'KONYA'),
+  createFallbackStation(89, 'AFYONKARAHİSAR'),
+  createFallbackStation(92, 'KÜTAHYA'),
+  createFallbackStation(100, 'KARAMAN'),
+  createFallbackStation(753, 'ADANA'),
+  createFallbackStation(170, 'MERSİN'),
+  createFallbackStation(130, 'KAYSERİ'),
+  createFallbackStation(140, 'SİVAS'),
+  createFallbackStation(150, 'ERZURUM'),
+  createFallbackStation(151, 'KARS'),
+  createFallbackStation(148, 'ELAZIĞ'),
+  createFallbackStation(147, 'MALATYA'),
+  createFallbackStation(180, 'İZMİR BASMANE'),
+  createFallbackStation(181, 'İZMİR ALSANCAK'),
+  createFallbackStation(185, 'DENİZLİ'),
+  createFallbackStation(77, 'BALIKESİR'),
+  createFallbackStation(79, 'BANDIRMA'),
+  createFallbackStation(200, 'ZONGULDAK'),
+  createFallbackStation(120, 'SAMSUN'),
+  createFallbackStation(125, 'AMASYA'),
+  createFallbackStation(145, 'TOKAT'),
+  createFallbackStation(95, 'ÇANKIRI'),
+  createFallbackStation(677, 'GÖLCÜK')
 ];
 
 class TCDDApiService {
@@ -281,34 +618,40 @@ class TCDDApiService {
           )
           .map((station: any) => ({
             id: station.id,
-            stationNumber: station.stationNumber,
-            areaCode: station.areaCode,
+            stationNumber: station.stationNumber || '',
+            areaCode: station.areaCode || 0,
             name: station.name,
-            stationStatus: station.stationStatus,
-            stationType: station.stationType,
-            unitId: station.unitId,
-            cityId: station.cityId,
-            districtId: station.districtId,
-            neighbourhoodId: station.neighbourhoodId,
+            stationStatus: station.stationStatus || { id: 0, name: null, detail: null },
+            stationType: station.stationType || { id: 0, name: null, detail: null },
+            unitId: station.unitId || 0,
+            cityId: station.cityId || 0,
+            districtId: station.districtId || 0,
+            neighbourhoodId: station.neighbourhoodId || 0,
             uicCode: station.uicCode,
             technicalUnit: station.technicalUnit,
-            stationChefId: station.stationChefId,
+            stationChefId: station.stationChefId || 0,
             detail: station.detail,
-            showOnQuery: station.showOnQuery,
-            passengerDrop: station.passengerDrop,
-            ticketSaleActive: station.ticketSaleActive,
-            active: station.active,
-            email: station.email,
+            showOnQuery: station.showOnQuery || false,
+            passengerDrop: station.passengerDrop || false,
+            ticketSaleActive: station.ticketSaleActive || false,
+            active: station.active || false,
+            email: station.email || '',
             orangeDeskEmail: station.orangeDeskEmail,
-            address: station.address,
-            longitude: station.longitude,
-            latitude: station.latitude,
-            altitude: station.altitude,
-            startKm: station.startKm,
-            endKm: station.endKm,
-            showOnMap: station.showOnMap,
-            passengerAdmission: station.passengerAdmission,
-            disabledAccessibility: station.disabledAccessibility,
+            address: station.address || '',
+            longitude: station.longitude || 0,
+            latitude: station.latitude || 0,
+            altitude: station.altitude || 0,
+            startKm: station.startKm || 0,
+            endKm: station.endKm || 0,
+            showOnMap: station.showOnMap || false,
+            passengerAdmission: station.passengerAdmission || false,
+            disabledAccessibility: station.disabledAccessibility || false,
+            phones: station.phones,
+            workingDays: station.workingDays,
+            hardwares: station.hardwares,
+            physicalProperties: station.physicalProperties,
+            stationPlatforms: station.stationPlatforms,
+            salesChannels: station.salesChannels,
             IATACode: station.IATACode
           }));
       } else {
@@ -366,7 +709,28 @@ class TCDDApiService {
             station.pairs && 
             Array.isArray(station.pairs) &&
             station.domestic === true
-          );
+          )
+          .map((station: any) => ({
+            id: station.id,
+            unitId: station.unitId || 0,
+            areaCode: station.areaCode || 0,
+            name: station.name,
+            stationCode: station.stationCode || '',
+            stationStatus: station.stationStatus || { id: 0, name: null, detail: null },
+            stationType: station.stationType || { id: 0, name: null, detail: null },
+            district: station.district,
+            passengerDrop: station.passengerDrop || false,
+            ticketSaleActive: station.ticketSaleActive || false,
+            longitude: station.longitude || 0,
+            latitude: station.latitude || 0,
+            altitude: station.altitude || 0,
+            international: station.international || false,
+            domestic: station.domestic || false,
+            pairs: station.pairs || [],
+            salesChannels: station.salesChannels,
+            stationTrainTypes: station.stationTrainTypes,
+            IATACode: station.IATACode
+          }));
       } else {
         throw new Error('Unexpected station pairs API response format');
       }
@@ -385,7 +749,7 @@ class TCDDApiService {
     try {
       const pairs = await this.fetchStationPairs();
       const fromStation = pairs.find(p => p.id === fromStationId);
-      return fromStation ? fromStation.pairs?.includes(toStationId) || false : false;
+      return fromStation ? fromStation.pairs.includes(toStationId) : false;
     } catch (error) {
       console.error('Error checking direct route:', error);
       return false;
@@ -509,18 +873,30 @@ class TCDDApiService {
             const firstSegment = train.segments[0];
             const lastSegment = train.segments[train.segments.length - 1];
             
-            departureTime = new Date(firstSegment.departureTime).toLocaleTimeString('tr-TR', {
+            // Handle date calculations properly to avoid negative hours
+            const departureDate = new Date(firstSegment.departureTime);
+            const arrivalDate = new Date(lastSegment.arrivalTime);
+            
+            // Format times properly
+            departureTime = departureDate.toLocaleTimeString('tr-TR', {
               hour: '2-digit',
-              minute: '2-digit'
+              minute: '2-digit',
+              day: 'numeric',
+              month: 'short'
             });
             
-            arrivalTime = new Date(lastSegment.arrivalTime).toLocaleTimeString('tr-TR', {
+            arrivalTime = arrivalDate.toLocaleTimeString('tr-TR', {
               hour: '2-digit', 
-              minute: '2-digit'
+              minute: '2-digit',
+              day: 'numeric',
+              month: 'short'
             });
             
-            // Sum up duration and distance from all segments
-            totalDuration = train.segments.reduce((sum, segment) => sum + segment.duration, 0);
+            // Calculate total duration in minutes correctly
+            const totalTimeMs = arrivalDate.getTime() - departureDate.getTime();
+            totalDuration = Math.round(totalTimeMs / (1000 * 60)); // Convert to minutes
+            
+            // Sum up distance from all segments
             totalDistance = train.segments.reduce((sum, segment) => sum + segment.distance, 0);
           }
           
@@ -542,21 +918,30 @@ class TCDDApiService {
             currency: train.minPrice?.priceCurrency || 'TRY',
             availableSeats,
             reservable: train.reservable || false,
-            segments: train.segments?.map(segment => ({
-              departureStation: segment.segment.departureStation.name,
-              arrivalStation: segment.segment.arrivalStation.name,
-              departureTime: new Date(segment.departureTime).toLocaleTimeString('tr-TR', {
-                hour: '2-digit',
-                minute: '2-digit'
-              }),
-              arrivalTime: new Date(segment.arrivalTime).toLocaleTimeString('tr-TR', {
-                hour: '2-digit',
-                minute: '2-digit'
-              }),
-              duration: segment.duration,
-              distance: segment.distance,
-              stops: segment.stops
-            })) || []
+            segments: train.segments?.map(segment => {
+              const segmentDepartureDate = new Date(segment.departureTime);
+              const segmentArrivalDate = new Date(segment.arrivalTime);
+              
+              return {
+                departureStation: segment.segment.departureStation.name,
+                arrivalStation: segment.segment.arrivalStation.name,
+                departureTime: segmentDepartureDate.toLocaleTimeString('tr-TR', {
+                  hour: '2-digit',
+                  minute: '2-digit',
+                  day: 'numeric',
+                  month: 'short'
+                }),
+                arrivalTime: segmentArrivalDate.toLocaleTimeString('tr-TR', {
+                  hour: '2-digit',
+                  minute: '2-digit',
+                  day: 'numeric',
+                  month: 'short'
+                }),
+                duration: segment.duration,
+                distance: segment.distance,
+                stops: segment.stops
+              };
+            }) || []
           });
         }
       }
