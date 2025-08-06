@@ -104,13 +104,18 @@ class RouteGraph {
 
     const routes: ConnectedRoute[] = [];
 
+    console.log(`Finding routes from ${fromStationId} to ${toStationId} with max ${maxConnections} connections`);
+
     // First check for direct route
     const directRoute = await this.findDirectRoute(fromStationId, toStationId, departureDate);
     if (directRoute) {
       routes.push(directRoute);
+      console.log(`Found direct route with ${directRoute.totalPrice} TRY`);
+    } else {
+      console.log('No direct route found, searching connected routes...');
     }
 
-    // Find connected routes using BFS with limited depth
+    // Always find connected routes (even if direct exists) to give users more options
     const connectedRoutes = await this.findConnectedRoutesRecursive(
       fromStationId,
       toStationId,
@@ -121,6 +126,7 @@ class RouteGraph {
     );
 
     routes.push(...connectedRoutes);
+    console.log(`Found ${connectedRoutes.length} connected routes`);
 
     // Sort routes by preference: direct first, then by connection count, then by duration
     routes.sort((a, b) => {
@@ -133,7 +139,8 @@ class RouteGraph {
     // Remove duplicate routes and limit to reasonable number
     const uniqueRoutes = this.removeDuplicateRoutes(routes);
     
-    return uniqueRoutes.slice(0, 10); // Limit to top 10 routes
+    console.log(`Returning ${uniqueRoutes.length} unique routes`);
+    return uniqueRoutes.slice(0, 15); // Increase to 15 routes to show more options
   }
 
   private async findDirectRoute(
@@ -145,14 +152,18 @@ class RouteGraph {
       // Check if direct connection exists in graph
       const fromNode = this.nodes.get(fromStationId);
       if (!fromNode || !fromNode.connections.includes(toStationId)) {
+        console.log(`No direct connection found between ${fromStationId} and ${toStationId} in graph`);
         return null;
       }
 
       // Search for trains on this direct route
       const dateStr = departureDate.toISOString().split('T')[0];
+      console.log(`Searching direct route ${fromStationId} -> ${toStationId} on ${dateStr}`);
+      
       const response = await TCDDApiService.searchTrainAvailability(fromStationId, toStationId, dateStr);
 
       if (!response.success || response.data.length === 0) {
+        console.log(`No trains found for direct route ${fromStationId} -> ${toStationId}`);
         return null;
       }
 
@@ -167,9 +178,13 @@ class RouteGraph {
         trains: response.data
       };
 
-      const totalDistance = response.data.reduce((sum, train) => sum + (train.distance || 0), 0) / response.data.length;
-      const totalDuration = response.data.reduce((sum, train) => sum + (train.duration || 0), 0) / response.data.length;
-      const totalPrice = Math.min(...response.data.map(train => train.price || 0));
+      // Use actual data from trains
+      const firstTrain = response.data[0];
+      const totalDistance = firstTrain.distance || 0;
+      const totalDuration = firstTrain.duration || 0;
+      const totalPrice = firstTrain.price || 0;
+
+      console.log(`Found direct route: ${fromStation} -> ${toStation}, ${response.data.length} trains, price: ${totalPrice} TRY`);
 
       return {
         segments: [segment],
@@ -208,8 +223,18 @@ class RouteGraph {
 
     visited.add(fromStationId);
 
-    // Limit the number of connections to explore for performance
-    const connectionsToExplore = fromNode.connections.slice(0, 20);
+    // Prioritize major hub stations for connections
+    const majorHubs = [98, 87, 180, 753, 20, 1135, 1325, 48]; // Ankara, Eskişehir, İzmir, Adana, Gebze, İzmit YHT, İstanbul Söğütlüçeşme, İstanbul Pendik
+    
+    // Sort connections to prioritize major hubs
+    const sortedConnections = fromNode.connections.sort((a, b) => {
+      const aIsMajorHub = majorHubs.includes(a) ? 1 : 0;
+      const bIsMajorHub = majorHubs.includes(b) ? 1 : 0;
+      return bIsMajorHub - aIsMajorHub; // Major hubs first
+    });
+
+    // Limit connections to explore for performance, but prioritize major hubs
+    const connectionsToExplore = sortedConnections.slice(0, 15);
 
     for (const intermediateStationId of connectionsToExplore) {
       if (visited.has(intermediateStationId)) continue;
@@ -235,7 +260,7 @@ class RouteGraph {
         // Calculate arrival time at intermediate station
         const bestFirstTrain = this.findBestTrain(firstLegResponse.data);
         const arrivalTime = this.calculateArrivalTime(departureDate, bestFirstTrain);
-        const transferTime = 30; // Minimum 30 minutes transfer time
+        const transferTime = 45; // Minimum 45 minutes transfer time for connections
         const nextDepartureTime = new Date(arrivalTime.getTime() + transferTime * 60000);
 
         if (intermediateStationId === toStationId) {
@@ -261,7 +286,7 @@ class RouteGraph {
             minTransferTime: transferTime
           });
         } else {
-          // Continue searching from intermediate station - but only for first connection level
+          // Continue searching from intermediate station
           if (maxConnections > 1) {
             const nextDepartureDate = nextDepartureTime;
             const remainingRoutes = await this.findConnectedRoutesRecursive(

@@ -473,9 +473,43 @@ export interface TCDDSearchResponse {
   dayChanged: boolean;
 }
 
+// Items data from items.json API
+export interface TCDDItem {
+  id: number;
+  itemType: {
+    id: number;
+    name: string;
+    image: string;
+    order: number;
+  };
+  name: string;
+  image: string;
+  saleable: boolean;
+  colSize: number;
+  rowSize: number;
+  order: number;
+  cabinClassId: number;
+  maleImage: string;
+  femaleImage: string;
+  selectedImage: string;
+  itemProperties: Array<{
+    id: number;
+    name: string;
+    characteristic: boolean;
+  }>;
+  active: boolean;
+}
+
+export interface TCDDItemsResponse {
+  items: TCDDItem[];
+  lastUpdateTime: string; // "YYYY-MM-DD HH:mm:ss"
+  updated: boolean;
+}
+
 // Cached stations and pairs
 let cachedStations: TCDDStation[] | null = null;
 let cachedStationPairs: TCDDStationPair[] | null = null;
+let cachedItems: TCDDItem[] | null = null;
 
 // Known TCDD stations with their API IDs - Simplified fallback structure
 const createFallbackStation = (id: number, name: string): TCDDStation => ({
@@ -744,7 +778,52 @@ class TCDDApiService {
     }
   }
 
-  // Check if a direct route exists between two stations
+  // Fetch items from TCDD API (cabin class information)
+  static async fetchItems(): Promise<TCDDItem[]> {
+    try {
+      if (cachedItems) {
+        return cachedItems;
+      }
+
+      const token = await this.getAuthToken();
+      
+      const response = await fetch(`${this.CDN_URL}/items.json?environment=dev&userId=1`, {
+        method: 'GET',
+        headers: {
+          'Accept': 'application/json, text/plain, */*',
+          'Accept-Language': 'tr',
+          'Authorization': token,
+          'sec-ch-ua-platform': '"Windows"',
+          'sec-ch-ua': '"Not)A;Brand";v="8", "Chromium";v="138", "Google Chrome";v="138"',
+          'sec-ch-ua-mobile': '?0',
+          'unit-id': this.UNIT_ID,
+          'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/138.0.0.0 Safari/537.36'
+        }
+      });
+
+      if (!response.ok) {
+        if (response.status === 401) {
+          throw new Error('Authentication failed when fetching items');
+        }
+        throw new Error(`Failed to fetch items: HTTP ${response.status}`);
+      }
+
+      const data: TCDDItemsResponse = await response.json();
+      
+      if (data.items && Array.isArray(data.items)) {
+        cachedItems = data.items.filter(item => item.active === true);
+      } else {
+        throw new Error('Unexpected items API response format');
+      }
+      
+      console.log(`Fetched ${cachedItems.length} active items from TCDD API`);
+      return cachedItems;
+      
+    } catch (error) {
+      console.error('Error fetching items from TCDD API:', error);
+      return [];
+    }
+  }
   static async hasDirectRoute(fromStationId: number, toStationId: number): Promise<boolean> {
     try {
       const pairs = await this.fetchStationPairs();
@@ -904,30 +983,67 @@ class TCDDApiService {
             totalDistance = train.segments.reduce((sum, segment) => sum + segment.distance, 0);
           }
           
-          // Get available capacity from booking classes and availabilities
+          // Get available seats and pricing from the most accurate sources
           let availableSeats = 0;
+          let bestPrice = 0;
           
-          // Try to get seats from availability.cars first (most accurate for available seats)
-          if (availability.cars && availability.cars.length > 0) {
-            for (const car of availability.cars) {
-              if (car.availabilities && car.availabilities.length > 0) {
-                for (const carAvail of car.availabilities) {
-                  availableSeats += carAvail.availability || 0;
+          // Try to get best pricing from trainLeg.availableFareInfo (most accurate pricing)
+          if (trainLeg.availableFareInfo && trainLeg.availableFareInfo.length > 0) {
+            // Find minimum price across all fare classes
+            const allPrices: number[] = [];
+            
+            for (const fareInfo of trainLeg.availableFareInfo) {
+              if (fareInfo.cabinClasses && fareInfo.cabinClasses.length > 0) {
+                for (const cabinClass of fareInfo.cabinClasses) {
+                  if (cabinClass.minPrice && cabinClass.minPrice > 0) {
+                    allPrices.push(cabinClass.minPrice);
+                  }
+                  // Also get availability count
+                  availableSeats += cabinClass.availabilityCount || 0;
                 }
               }
             }
-          }
-          // Fallback to trainLeg's cabinClassAvailabilities (available seats per cabin class)
-          else if (trainLeg.cabinClassAvailabilities && trainLeg.cabinClassAvailabilities.length > 0) {
-            availableSeats = trainLeg.cabinClassAvailabilities.reduce((sum, cabinAvail) => sum + cabinAvail.availabilityCount, 0);
-          } 
-          // Last fallback to train's bookingClassCapacities (total capacity, not available)
-          else if (train.bookingClassCapacities && train.bookingClassCapacities.length > 0) {
-            // Note: This is capacity, not availability - might not be accurate for actual available seats
-            availableSeats = train.bookingClassCapacities.reduce((sum, capacity) => sum + capacity.capacity, 0);
+            
+            if (allPrices.length > 0) {
+              bestPrice = Math.min(...allPrices);
+            }
           }
           
-          trains.push({
+          // Fallback pricing from train.minPrice if no fare info available
+          if (bestPrice === 0 && train.minPrice?.priceAmount) {
+            bestPrice = train.minPrice.priceAmount;
+          }
+          
+          // If still no available seats from fare info, try other sources
+          if (availableSeats === 0) {
+            // Try to get seats from availability.cars (most accurate for available seats)
+            if (availability.cars && availability.cars.length > 0) {
+              for (const car of availability.cars) {
+                if (car.availabilities && car.availabilities.length > 0) {
+                  for (const carAvail of car.availabilities) {
+                    availableSeats += carAvail.availability || 0;
+                  }
+                }
+              }
+            }
+            // Fallback to trainLeg's cabinClassAvailabilities (available seats per cabin class)
+            else if (trainLeg.cabinClassAvailabilities && trainLeg.cabinClassAvailabilities.length > 0) {
+              availableSeats = trainLeg.cabinClassAvailabilities.reduce((sum, cabinAvail) => sum + cabinAvail.availabilityCount, 0);
+            } 
+            // Last fallback to train's bookingClassCapacities (total capacity, not available)
+            else if (train.bookingClassCapacities && train.bookingClassCapacities.length > 0) {
+              // Note: This is capacity, not availability - might not be accurate for actual available seats
+              availableSeats = train.bookingClassCapacities.reduce((sum, capacity) => sum + capacity.capacity, 0);
+            }
+          }
+          
+          // Skip trains with no available seats or no price
+          if (availableSeats === 0 && bestPrice === 0) {
+            console.warn(`Skipping train ${train.number} - no seats or price available`);
+            continue;
+          }
+          
+          const trainData = {
             trainNumber: train.number || 'Unknown',
             trainName: train.name || train.commercialName || 'Unknown',
             trainType: train.type || 'Unknown',
@@ -936,7 +1052,7 @@ class TCDDApiService {
             departureTimestamp, // For sorting
             duration: totalDuration, // in minutes
             distance: Math.round(totalDistance * 100) / 100, // round to 2 decimal places
-            price: train.minPrice?.priceAmount || 0,
+            price: bestPrice,
             currency: train.minPrice?.priceCurrency || 'TRY',
             availableSeats,
             reservable: train.reservable || false,
@@ -960,7 +1076,10 @@ class TCDDApiService {
                 stops: segment.stops
               };
             }) || []
-          });
+          };
+          
+          console.log(`Train ${trainData.trainNumber}: ${trainData.availableSeats} seats, ${trainData.price} TRY`);
+          trains.push(trainData);
         }
       }
     }
