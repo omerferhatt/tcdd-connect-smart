@@ -29,15 +29,18 @@ export interface Journey {
 
 export const TURKISH_STATIONS: Station[] = [
   { id: 'ist', name: 'İstanbul (Söğütlüçeşme)', city: 'İstanbul', region: 'Marmara', tcddId: 1325 },
-  { id: 'ist-pendik', name: 'İstanbul (Pendik)', city: 'İstanbul', region: 'Marmara', tcddId: 1322 },
-  { id: 'ist-halkali', name: 'İstanbul (Halkalı)', city: 'İstanbul', region: 'Marmara', tcddId: 1326 },
+  { id: 'ist-pendik', name: 'İstanbul (Pendik)', city: 'İstanbul', region: 'Marmara', tcddId: 48 },
+  { id: 'ist-bostanci', name: 'İstanbul (Bostancı)', city: 'İstanbul', region: 'Marmara', tcddId: 1323 },
+  { id: 'ist-halkali', name: 'İstanbul (Halkalı)', city: 'İstanbul', region: 'Marmara', tcddId: 1322 },
   { id: 'ank', name: 'Ankara Gar', city: 'Ankara', region: 'İç Anadolu', tcddId: 98 },
-  { id: 'koc', name: 'Kocaeli (İzmit)', city: 'Kocaeli', region: 'Marmara', tcddId: 82 },
+  { id: 'gebze', name: 'Gebze', city: 'Kocaeli', region: 'Marmara', tcddId: 20 },
+  { id: 'izmit', name: 'İzmit YHT', city: 'Kocaeli', region: 'Marmara', tcddId: 1135 },
+  { id: 'arifiye', name: 'Arifiye', city: 'Sakarya', region: 'Marmara', tcddId: 5 },
   { id: 'esk', name: 'Eskişehir', city: 'Eskişehir', region: 'İç Anadolu', tcddId: 87 },
   { id: 'kon', name: 'Konya', city: 'Konya', region: 'İç Anadolu', tcddId: 103 },
   { id: 'izm', name: 'İzmir (Basmane)', city: 'İzmir', region: 'Ege', tcddId: 180 },
   { id: 'izm-alsancak', name: 'İzmir (Alsancak)', city: 'İzmir', region: 'Ege', tcddId: 181 },
-  { id: 'ada', name: 'Adana', city: 'Adana', region: 'Akdeniz', tcddId: 160 },
+  { id: 'ada', name: 'Adana', city: 'Adana', region: 'Akdeniz', tcddId: 753 },
   { id: 'mer', name: 'Mersin', city: 'Mersin', region: 'Akdeniz', tcddId: 170 },
   { id: 'kay', name: 'Kayseri', city: 'Kayseri', region: 'İç Anadolu', tcddId: 130 },
   { id: 'siv', name: 'Sivas', city: 'Sivas', region: 'İç Anadolu', tcddId: 140 },
@@ -54,7 +57,8 @@ export const TURKISH_STATIONS: Station[] = [
   { id: 'kut', name: 'Kütahya', city: 'Kütahya', region: 'Ege', tcddId: 92 },
   { id: 'cank', name: 'Çankırı', city: 'Çankırı', region: 'İç Anadolu', tcddId: 95 },
   { id: 'ama', name: 'Amasya', city: 'Amasya', region: 'Karadeniz', tcddId: 125 },
-  { id: 'tok', name: 'Tokat', city: 'Tokat', region: 'Karadeniz', tcddId: 145 }
+  { id: 'tok', name: 'Tokat', city: 'Tokat', region: 'Karadeniz', tcddId: 145 },
+  { id: 'golcuk', name: 'Gölcük', city: 'Kocaeli', region: 'Marmara', tcddId: 677 }
 ];
 
 // Mock route data - in a real app, this would come from TCDD API
@@ -236,21 +240,21 @@ export async function searchTrainsWithAPI(fromStation: Station, toStation: Stati
   
   if (fromStation.tcddId && toStation.tcddId) {
     try {
-      // Format date for API (DD-MM-YYYY format as required by TCDD API)
+      // Format date for API (YYYY-MM-DD format)
       let dateString = '';
       if (departureDate) {
-        const day = departureDate.getDate().toString().padStart(2, '0');
-        const month = (departureDate.getMonth() + 1).toString().padStart(2, '0');
         const year = departureDate.getFullYear();
-        dateString = `${day}-${month}-${year}`;
+        const month = (departureDate.getMonth() + 1).toString().padStart(2, '0');
+        const day = departureDate.getDate().toString().padStart(2, '0');
+        dateString = `${year}-${month}-${day}`;
       } else {
-        // Use tomorrow if no date provided (TCDD doesn't allow same-day booking typically)
+        // Use tomorrow if no date provided
         const tomorrow = new Date();
         tomorrow.setDate(tomorrow.getDate() + 1);
-        const day = tomorrow.getDate().toString().padStart(2, '0');
-        const month = (tomorrow.getMonth() + 1).toString().padStart(2, '0');
         const year = tomorrow.getFullYear();
-        dateString = `${day}-${month}-${year}`;
+        const month = (tomorrow.getMonth() + 1).toString().padStart(2, '0');
+        const day = tomorrow.getDate().toString().padStart(2, '0');
+        dateString = `${year}-${month}-${day}`;
       }
       
       console.log(`Searching TCDD API: ${fromStation.name} -> ${toStation.name} on ${dateString}`);
@@ -263,23 +267,23 @@ export async function searchTrainsWithAPI(fromStation: Station, toStation: Stati
       
       if (apiResponse.success && apiResponse.data.length > 0) {
         // Convert API response to our Journey format
-        apiResponse.data.forEach(train => {
+        apiResponse.data.forEach((train: any, index: number) => {
           const segment: RouteSegment = {
-            id: `api-${train.trainNumber}`,
+            id: `api-${train.trainNumber}-${index}`,
             from: fromStation,
             to: toStation,
-            departure: train.departureTime,
-            arrival: train.arrivalTime,
-            duration: train.duration,
-            trainNumber: train.trainNumber,
-            price: train.price
+            departure: train.departureTime || '00:00',
+            arrival: train.arrivalTime || '00:00',
+            duration: train.duration || 0,
+            trainNumber: train.trainNumber || train.trainName || 'Unknown',
+            price: train.price || 0
           };
           
           journeys.push({
-            id: `api-direct-${train.trainNumber}`,
+            id: `api-direct-${train.trainNumber}-${index}`,
             segments: [segment],
-            totalDuration: train.duration,
-            totalPrice: train.price,
+            totalDuration: train.duration || 0,
+            totalPrice: train.price || 0,
             connectionCount: 0
           });
         });
@@ -289,7 +293,7 @@ export async function searchTrainsWithAPI(fromStation: Station, toStation: Stati
         console.log('No direct routes found from API, message:', apiResponse.message);
       }
     } catch (error) {
-      console.warn('API search failed, falling back to mock data:', error);
+      console.warn('API search failed:', error);
       throw error; // Re-throw to trigger fallback in calling code
     }
   } else {
@@ -305,26 +309,32 @@ export async function searchTrainsWithAPI(fromStation: Station, toStation: Stati
   }
   
   return journeys.sort((a, b) => {
-    if (a.totalDuration !== b.totalDuration) {
-      return a.totalDuration - b.totalDuration;
+    if (a.connectionCount !== b.connectionCount) {
+      return a.connectionCount - b.connectionCount; // Prefer direct routes
     }
-    return a.connectionCount - b.connectionCount;
+    return a.totalDuration - b.totalDuration;
   }).slice(0, 10);
 }
 
 async function findConnectedRoutesWithAPI(
   fromStation: Station, 
   toStation: Station, 
-  departureDate: Date
+  departureDate?: Date
 ): Promise<Journey[]> {
   const journeys: Journey[] = [];
-  const dateStr = `${departureDate.getDate().toString().padStart(2, '0')}-${(departureDate.getMonth() + 1).toString().padStart(2, '0')}-${departureDate.getFullYear()}`;
+  
+  // Format date for API
+  const date = departureDate || new Date(Date.now() + 24 * 60 * 60 * 1000); // tomorrow
+  const year = date.getFullYear();
+  const month = (date.getMonth() + 1).toString().padStart(2, '0');
+  const day = date.getDate().toString().padStart(2, '0');
+  const dateStr = `${year}-${month}-${day}`;
   
   // Get real stations from API
   const allStations = await TCDDApiService.getAllStations();
   
   // Convert TCDD stations to our Station format for major hubs
-  const majorHubTcddIds = [98, 87, 180, 160, 82]; // Ankara, Eskişehir, İzmir, Adana, Kocaeli
+  const majorHubTcddIds = [98, 87, 180, 753, 20, 1135]; // Ankara, Eskişehir, İzmir, Adana, Gebze, İzmit YHT
   const majorHubs = allStations
     .filter(tcddStation => 
       majorHubTcddIds.includes(tcddStation.id) &&
@@ -334,7 +344,7 @@ async function findConnectedRoutesWithAPI(
     .map(tcddStation => ({
       id: `tcdd-${tcddStation.id}`,
       name: tcddStation.name,
-      city: tcddStation.cityName || tcddStation.name,
+      city: tcddStation.name,
       region: 'Unknown',
       tcddId: tcddStation.id
     }));
@@ -369,44 +379,46 @@ async function findConnectedRoutesWithAPI(
           firstLegResponse.data.length > 0 && secondLegResponse.data.length > 0) {
         
         // Combine compatible train schedules
-        firstLegResponse.data.forEach((firstTrain, i) => {
-          secondLegResponse.data.forEach((secondTrain, j) => {
+        firstLegResponse.data.forEach((firstTrain: any, i: number) => {
+          secondLegResponse.data.forEach((secondTrain: any, j: number) => {
             // Parse times to check if connection is feasible
-            const firstArrival = parseTimeToMinutes(firstTrain.arrivalTime);
-            const secondDeparture = parseTimeToMinutes(secondTrain.departureTime);
+            const firstArrival = parseTimeToMinutes(firstTrain.arrivalTime || '00:00');
+            const secondDeparture = parseTimeToMinutes(secondTrain.departureTime || '00:00');
             
             // Allow at least 30 minutes for connection
-            const connectionTime = secondDeparture - firstArrival;
+            let connectionTime = secondDeparture - firstArrival;
+            if (connectionTime < 0) connectionTime += 24 * 60; // Next day
+            
             if (connectionTime >= 30 && connectionTime <= 360) { // Max 6 hours wait
               const firstSegment: RouteSegment = {
                 id: `segment-${hub.id}-${i}-1`,
                 from: fromStation,
                 to: hub,
-                departure: firstTrain.departureTime,
-                arrival: firstTrain.arrivalTime,
-                duration: firstTrain.duration,
-                trainNumber: firstTrain.trainNumber,
-                price: firstTrain.price
+                departure: firstTrain.departureTime || '00:00',
+                arrival: firstTrain.arrivalTime || '00:00',
+                duration: firstTrain.duration || 0,
+                trainNumber: firstTrain.trainNumber || firstTrain.trainName || 'Unknown',
+                price: firstTrain.price || 0
               };
               
               const secondSegment: RouteSegment = {
                 id: `segment-${hub.id}-${j}-2`,
                 from: hub,
                 to: toStation,
-                departure: secondTrain.departureTime,
-                arrival: secondTrain.arrivalTime,
-                duration: secondTrain.duration,
-                trainNumber: secondTrain.trainNumber,
-                price: secondTrain.price
+                departure: secondTrain.departureTime || '00:00',
+                arrival: secondTrain.arrivalTime || '00:00',
+                duration: secondTrain.duration || 0,
+                trainNumber: secondTrain.trainNumber || secondTrain.trainName || 'Unknown',
+                price: secondTrain.price || 0
               };
               
-              const totalDuration = secondSegment.duration + firstSegment.duration + connectionTime;
+              const totalDuration = (firstTrain.duration || 0) + (secondTrain.duration || 0) + connectionTime;
               
               journeys.push({
                 id: `journey-${hub.id}-${i}-${j}`,
                 segments: [firstSegment, secondSegment],
                 totalDuration,
-                totalPrice: firstTrain.price + secondTrain.price,
+                totalPrice: (firstTrain.price || 0) + (secondTrain.price || 0),
                 connectionCount: 1
               });
             }

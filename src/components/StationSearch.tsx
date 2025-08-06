@@ -41,15 +41,15 @@ export function StationSearch({ label, placeholder, value, onChange, disabled }:
           const convertedStations: Station[] = tcddStations.map(tcddStation => ({
             id: `tcdd-${tcddStation.id}`,
             name: tcddStation.name,
-            city: tcddStation.cityName || tcddStation.name,
-            region: 'Unknown',
+            city: tcddStation.name, // Use station name as city for now since we don't have city data
+            region: 'Türkiye',
             tcddId: tcddStation.id
           }));
           
           // Also search in our hardcoded stations as fallback
           const localResults = findStations(query);
           
-          // Combine and deduplicate results
+          // Combine and deduplicate results - prefer API results
           const allResults = [...convertedStations, ...localResults];
           const uniqueResults = allResults.reduce((unique, station) => {
             const exists = unique.find(s => 

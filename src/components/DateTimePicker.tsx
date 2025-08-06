@@ -49,6 +49,10 @@ export function DateTimePicker({
   const today = new Date();
   today.setHours(0, 0, 0, 0);
 
+  // Create a normalized value for the calendar to prevent timezone issues
+  const normalizedValue = new Date(value);
+  normalizedValue.setHours(12, 0, 0, 0);
+
   return (
     <div className={cn("space-y-2", className)}>
       <Label className="text-sm font-medium">{label}</Label>
@@ -70,7 +74,7 @@ export function DateTimePicker({
         <PopoverContent className="w-auto p-0" align="start">
           <Calendar
             mode="single"
-            selected={value}
+            selected={normalizedValue}
             onSelect={handleDateSelect}
             disabled={(date) => {
               const checkDate = new Date(date);
@@ -92,6 +96,8 @@ export function DateTimePicker({
             fixedWeeks
             showOutsideDays={false}
             className="rounded-md border"
+            weekStartsOn={1}
+            firstDayOfWeek={1}
           />
         </PopoverContent>
       </Popover>

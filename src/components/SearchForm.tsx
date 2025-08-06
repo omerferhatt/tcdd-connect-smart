@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useCallback } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
 import { StationSearch } from './StationSearch';
@@ -37,6 +37,11 @@ export function SearchForm({ onSearch, loading }: SearchFormProps) {
     setFromStation(toStation);
     setToStation(temp);
   };
+
+  // Use useCallback to prevent unnecessary re-renders of DateTimePicker
+  const handleDateChange = useCallback((date: Date) => {
+    setDepartureDate(date);
+  }, []);
 
   const canSearch = fromStation && toStation && fromStation.id !== toStation.id;
   const sameStation = fromStation && toStation && fromStation.id === toStation.id;
@@ -86,10 +91,9 @@ export function SearchForm({ onSearch, loading }: SearchFormProps) {
           {/* Date Selection */}
           <div className="grid grid-cols-1 md:grid-cols-1 gap-4">
             <DateTimePicker
-              key={`date-picker-${departureDate.getTime()}`} // Force re-render on date change
               label="Gidiş Tarihi"
               value={departureDate}
-              onChange={setDepartureDate}
+              onChange={handleDateChange}
               disabled={loading}
               className="mx-auto max-w-md"
             />
