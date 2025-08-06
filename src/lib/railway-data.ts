@@ -314,9 +314,6 @@ export async function searchTrainsWithAPI(fromStation: Station, toStation: Stati
     return a.connectionCount - b.connectionCount;
   }).slice(0, 10);
 }
-    return a.connectionCount - b.connectionCount;
-  }).slice(0, 10);
-}
 
 async function findConnectedRoutesWithAPI(
   fromStation: Station, 
