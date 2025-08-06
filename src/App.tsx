@@ -21,7 +21,7 @@ function App() {
   const [currentSearch, setCurrentSearch] = useState<{ from: Station; to: Station } | null>(null);
   const [loading, setLoading] = useState(false);
   const [searchHistory, setSearchHistory] = useKV<SearchHistory[]>('search-history', []);
-  const [useRealAPI, setUseRealAPI] = useKV<boolean>('use-real-api', false);
+  const [useRealAPI, setUseRealAPI] = useKV<boolean>('use-real-api', true);
   const [apiStatus, setApiStatus] = useState<'unknown' | 'connected' | 'error'>('unknown');
 
   const handleSearch = async (fromStation: Station, toStation: Station, departureDate: Date) => {
@@ -67,6 +67,7 @@ function App() {
         const { findConnectedRoutes } = await import('./lib/railway-data');
         results = findConnectedRoutes(fromStation.id, toStation.id, 2);
         setApiStatus('unknown');
+        toast.info('Demo modu aktif - örnek veriler kullanılıyor');
       }
       
       setJourneys(results);
@@ -131,7 +132,7 @@ function App() {
                 }`} />
                 <span className="text-muted-foreground">
                   {apiStatus === 'connected' ? 'Gerçek API Bağlı' : 
-                   apiStatus === 'error' ? 'API Hatası' : 'Demo Modu'}
+                   apiStatus === 'error' ? 'API Hatası - Demo Modu' : 'Gerçek API Modu'}
                 </span>
               </div>
               
@@ -143,7 +144,7 @@ function App() {
                     onChange={(e) => setUseRealAPI(e.target.checked)}
                     className="mr-1"
                   />
-                  Gerçek TCDD API Kullan
+                  Gerçek TCDD API Kullan (Varsayılan)
                 </label>
               </div>
               
@@ -164,8 +165,8 @@ function App() {
             
             {useRealAPI && (
               <div className="text-xs text-muted-foreground bg-muted/50 rounded p-2 max-w-md mx-auto">
-                ⚠️ Gerçek API kullanımı için TCDD hesabınızla giriş yapmanız ve geçerli bir JWT token almanız gerekir.
-                Token yoksa demo veriler kullanılır. "API Ayarları" butonundan token ekleyebilirsiniz.
+                ✅ Gerçek TCDD API aktif! Geliştirici token kullanılıyor.
+                API hata verirse otomatik olarak demo verilere geçilir.
               </div>
             )}
           </div>
@@ -249,9 +250,8 @@ function App() {
               </p>
               
               <div className="text-xs bg-muted rounded p-2 max-w-2xl mx-auto">
-                <strong>API Entegrasyonu:</strong> Bu uygulama TCDD'nin gerçek API'sini kullanabilir. 
-                Gerçek veriler için yukarıdaki "API Ayarları" butonundan geçerli bir JWT token girin. 
-                Token olmadan demo veriler kullanılır.
+                <strong>API Entegrasyonu:</strong> Bu uygulama TCDD'nin gerçek API'sini kullanıyor. 
+                Geliştirici token otomatik yapılandırılmıştır. API hata verirse demo veriler kullanılır.
               </div>
             </div>
           </div>
