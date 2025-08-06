@@ -35,17 +35,14 @@ function App() {
       let results: Journey[] = [];
       
       if (useRealAPI) {
-        // Try real API first
+        // Try real API only - no automatic fallback
         try {
           results = await searchTrainsWithAPI(fromStation, toStation, departureDate);
           setApiStatus('connected');
           if (results.length > 0) {
             toast.success('TCDD API\'den gerçek veriler alındı');
           } else {
-            toast.info('TCDD API\'den sonuç gelmedi, demo veriler kullanılıyor');
-            // Fall back to mock data
-            const { findConnectedRoutes } = await import('./lib/railway-data');
-            results = findConnectedRoutes(fromStation.id, toStation.id, 2);
+            toast.info('TCDD API\'den sonuç gelmedi');
           }
         } catch (error) {
           setApiStatus('error');
@@ -55,15 +52,14 @@ function App() {
           if (errorMessage.includes('Authentication')) {
             toast.error('TCDD API kimlik doğrulama hatası. API Ayarları\'ndan geçerli token girin.');
           } else {
-            toast.warning('TCDD API\'ye bağlanılamadı, demo veriler kullanılıyor');
+            toast.error('TCDD API\'ye bağlanılamadı. Lütfen internet bağlantınızı kontrol edin veya API Ayarları\'ndan demo modu aktif edin.');
           }
           
-          // Fall back to mock data
-          const { findConnectedRoutes } = await import('./lib/railway-data');
-          results = findConnectedRoutes(fromStation.id, toStation.id, 2);
+          // Don't fallback automatically - let user decide
+          results = [];
         }
       } else {
-        // Use mock data
+        // Use mock data only when explicitly disabled
         const { findConnectedRoutes } = await import('./lib/railway-data');
         results = findConnectedRoutes(fromStation.id, toStation.id, 2);
         setApiStatus('unknown');
@@ -88,7 +84,11 @@ function App() {
       });
       
       if (results.length === 0) {
-        toast.error(`${fromStation.name} - ${toStation.name} arası sefer bulunamadı`);
+        if (useRealAPI && apiStatus === 'error') {
+          toast.error(`API hatası nedeniyle sonuç alınamadı. Demo modu için API Ayarları'ndan geçiş yapabilirsiniz.`);
+        } else {
+          toast.error(`${fromStation.name} - ${toStation.name} arası sefer bulunamadı`);
+        }
       } else {
         const directCount = results.filter(j => j.connectionCount === 0).length;
         const connectedCount = results.filter(j => j.connectionCount > 0).length;
@@ -132,20 +132,9 @@ function App() {
                 }`} />
                 <span className="text-muted-foreground">
                   {apiStatus === 'connected' ? 'Gerçek API Bağlı' : 
-                   apiStatus === 'error' ? 'API Hatası - Demo Modu' : 'Gerçek API Modu'}
+                   apiStatus === 'error' ? 'API Hatası' : 
+                   useRealAPI ? 'Gerçek API Modu' : 'Demo Modu'}
                 </span>
-              </div>
-              
-              <div className="flex items-center gap-2">
-                <label className="text-muted-foreground cursor-pointer">
-                  <input
-                    type="checkbox"
-                    checked={useRealAPI}
-                    onChange={(e) => setUseRealAPI(e.target.checked)}
-                    className="mr-1"
-                  />
-                  Gerçek TCDD API Kullan (Varsayılan)
-                </label>
               </div>
               
               <div className="flex gap-2">
@@ -154,6 +143,8 @@ function App() {
                     setApiStatus('connected');
                     toast.success('API bağlantısı kuruldu!');
                   }}
+                  useRealAPI={useRealAPI}
+                  onToggleAPI={setUseRealAPI}
                 />
                 
                 <ApiDebugDialog 
@@ -166,7 +157,7 @@ function App() {
             {useRealAPI && (
               <div className="text-xs text-muted-foreground bg-muted/50 rounded p-2 max-w-md mx-auto">
                 ✅ Gerçek TCDD API aktif! Geliştirici token kullanılıyor.
-                API hata verirse otomatik olarak demo verilere geçilir.
+                API hata verirse sonuç gösterilmez. Demo modu için API Ayarları'ndan geçiş yapabilirsiniz.
               </div>
             )}
           </div>
@@ -251,7 +242,7 @@ function App() {
               
               <div className="text-xs bg-muted rounded p-2 max-w-2xl mx-auto">
                 <strong>API Entegrasyonu:</strong> Bu uygulama TCDD'nin gerçek API'sini kullanıyor. 
-                Geliştirici token otomatik yapılandırılmıştır. API hata verirse demo veriler kullanılır.
+                Geliştirici token otomatik yapılandırılmıştır. API hata verirse demo mod için API Ayarları'nı kullanın.
               </div>
             </div>
           </div>
