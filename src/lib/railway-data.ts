@@ -230,15 +230,32 @@ export function formatPrice(price: number): string {
 
 // API Integration Functions
 
-export async function searchTrainsWithAPI(fromStation: Station, toStation: Station): Promise<Journey[]> {
+export async function searchTrainsWithAPI(fromStation: Station, toStation: Station, departureDate?: Date): Promise<Journey[]> {
   // First try direct routes from API
   const journeys: Journey[] = [];
   
   if (fromStation.tcddId && toStation.tcddId) {
     try {
+      // Format date for API (DD-MM-YYYY format)
+      let dateString = '';
+      if (departureDate) {
+        const day = departureDate.getDate().toString().padStart(2, '0');
+        const month = (departureDate.getMonth() + 1).toString().padStart(2, '0');
+        const year = departureDate.getFullYear();
+        dateString = `${day}-${month}-${year}`;
+      } else {
+        // Use today if no date provided
+        const today = new Date();
+        const day = today.getDate().toString().padStart(2, '0');
+        const month = (today.getMonth() + 1).toString().padStart(2, '0');
+        const year = today.getFullYear();
+        dateString = `${day}-${month}-${year}`;
+      }
+      
       const apiResponse = await TCDDApiService.searchTrainAvailability(
         fromStation.tcddId,
-        toStation.tcddId
+        toStation.tcddId,
+        dateString
       );
       
       if (apiResponse.success && apiResponse.data.length > 0) {

@@ -2,22 +2,33 @@ import React, { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
 import { StationSearch } from './StationSearch';
+import { DateTimePicker } from './DateTimePicker';
 import { Station } from '@/lib/railway-data';
 import { MagnifyingGlass, ArrowsLeftRight } from '@phosphor-icons/react';
 
 interface SearchFormProps {
-  onSearch: (from: Station, to: Station) => void;
+  onSearch: (from: Station, to: Station, departureDate: Date) => void;
   loading?: boolean;
 }
 
 export function SearchForm({ onSearch, loading }: SearchFormProps) {
   const [fromStation, setFromStation] = useState<Station | null>(null);
   const [toStation, setToStation] = useState<Station | null>(null);
+  
+  // Initialize with tomorrow 09:00 as default departure time
+  const getDefaultDate = () => {
+    const tomorrow = new Date();
+    tomorrow.setDate(tomorrow.getDate() + 1);
+    tomorrow.setHours(9, 0, 0, 0);
+    return tomorrow;
+  };
+  
+  const [departureDate, setDepartureDate] = useState<Date>(getDefaultDate());
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (fromStation && toStation && fromStation.id !== toStation.id) {
-      onSearch(fromStation, toStation);
+      onSearch(fromStation, toStation, departureDate);
     }
   };
 
@@ -69,6 +80,17 @@ export function SearchForm({ onSearch, loading }: SearchFormProps) {
               value={toStation}
               onChange={setToStation}
               disabled={loading}
+            />
+          </div>
+
+          {/* Date and Time Selection */}
+          <div className="grid grid-cols-1 md:grid-cols-1 gap-4">
+            <DateTimePicker
+              label="Gidiş Tarihi ve Saati"
+              value={departureDate}
+              onChange={setDepartureDate}
+              disabled={loading}
+              className="mx-auto max-w-md"
             />
           </div>
 

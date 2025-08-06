@@ -24,7 +24,7 @@ function App() {
   const [useRealAPI, setUseRealAPI] = useKV<boolean>('use-real-api', false);
   const [apiStatus, setApiStatus] = useState<'unknown' | 'connected' | 'error'>('unknown');
 
-  const handleSearch = async (fromStation: Station, toStation: Station) => {
+  const handleSearch = async (fromStation: Station, toStation: Station, departureDate: Date) => {
     setLoading(true);
     setCurrentSearch({ from: fromStation, to: toStation });
     
@@ -37,7 +37,7 @@ function App() {
       if (useRealAPI) {
         // Try real API first
         try {
-          results = await searchTrainsWithAPI(fromStation, toStation);
+          results = await searchTrainsWithAPI(fromStation, toStation, departureDate);
           setApiStatus('connected');
           toast.success('TCDD API\'den gerçek veriler alındı');
         } catch (error) {
