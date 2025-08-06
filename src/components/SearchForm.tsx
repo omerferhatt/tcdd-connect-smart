@@ -15,11 +15,11 @@ export function SearchForm({ onSearch, loading }: SearchFormProps) {
   const [fromStation, setFromStation] = useState<Station | null>(null);
   const [toStation, setToStation] = useState<Station | null>(null);
   
-  // Initialize with tomorrow 09:00 as default departure time
+  // Initialize with tomorrow 09:00 as default departure time (for API calls)
   const getDefaultDate = () => {
     const tomorrow = new Date();
     tomorrow.setDate(tomorrow.getDate() + 1);
-    tomorrow.setHours(9, 0, 0, 0);
+    tomorrow.setHours(9, 0, 0, 0); // Default to 9 AM for API compatibility
     return tomorrow;
   };
   
@@ -83,10 +83,10 @@ export function SearchForm({ onSearch, loading }: SearchFormProps) {
             />
           </div>
 
-          {/* Date and Time Selection */}
+          {/* Date Selection */}
           <div className="grid grid-cols-1 md:grid-cols-1 gap-4">
             <DateTimePicker
-              label="Gidiş Tarihi ve Saati"
+              label="Gidiş Tarihi"
               value={departureDate}
               onChange={setDepartureDate}
               disabled={loading}
