@@ -36,9 +36,8 @@ export function DateTimePicker({
 
   const handleDateSelect = (selectedDate: Date | undefined) => {
     if (selectedDate) {
-      // Create a new date object to avoid mutation
+      // Create a new date object to avoid mutation and set to noon
       const newDate = new Date(selectedDate);
-      // Set to noon to avoid timezone issues
       newDate.setHours(12, 0, 0, 0);
       onChange(newDate);
       setIsOpen(false);
@@ -63,7 +62,7 @@ export function DateTimePicker({
             variant="outline"
             disabled={disabled}
             className={cn(
-              "w-full justify-start text-left font-normal",
+              "w-full justify-start text-left font-normal min-h-10",
               !value && "text-muted-foreground"
             )}
           >
@@ -97,19 +96,6 @@ export function DateTimePicker({
             showOutsideDays={false}
             className="rounded-md border"
             weekStartsOn={1} // Monday
-            locale={{
-              weekdaysLong: ['Pazar', 'Pazartesi', 'Salı', 'Çarşamba', 'Perşembe', 'Cuma', 'Cumartesi'],
-              weekdaysShort: ['Paz', 'Pzt', 'Sal', 'Çar', 'Per', 'Cum', 'Cmt'],
-              weekdaysNarrow: ['P', 'P', 'S', 'Ç', 'P', 'C', 'C'],
-              monthsLong: [
-                'Ocak', 'Şubat', 'Mart', 'Nisan', 'Mayıs', 'Haziran',
-                'Temmuz', 'Ağustos', 'Eylül', 'Ekim', 'Kasım', 'Aralık'
-              ],
-              monthsShort: [
-                'Oca', 'Şub', 'Mar', 'Nis', 'May', 'Haz',
-                'Tem', 'Ağu', 'Eyl', 'Eki', 'Kas', 'Ara'
-              ]
-            }}
           />
         </PopoverContent>
       </Popover>

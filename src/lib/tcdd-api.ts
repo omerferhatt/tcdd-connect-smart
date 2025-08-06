@@ -775,7 +775,7 @@ class TCDDApiService {
 
       // Format date correctly for TCDD API (DD-MM-YYYY HH:mm:ss)
       const [year, month, day] = departureDate.split('-');
-      const formattedDate = `${day}-${month}-${year} 09:00:00`;
+      const formattedDate = `${day}-${month}-${year} 00:00:00`;
 
       const requestBody: TCDDSearchRequest = {
         searchRoutes: [{
@@ -867,6 +867,7 @@ class TCDDApiService {
           let totalDistance = 0;
           let departureTime = '';
           let arrivalTime = '';
+          let departureTimestamp = 0;
           
           if (train.segments && train.segments.length > 0) {
             // Get departure time from first segment
@@ -877,20 +878,23 @@ class TCDDApiService {
             const departureDate = new Date(firstSegment.departureTime);
             const arrivalDate = new Date(lastSegment.arrivalTime);
             
-            // Format times properly
+            departureTimestamp = departureDate.getTime();
+            
+            // Format times properly - show only time, not date
             departureTime = departureDate.toLocaleTimeString('tr-TR', {
               hour: '2-digit',
-              minute: '2-digit',
-              day: 'numeric',
-              month: 'short'
+              minute: '2-digit'
             });
             
             arrivalTime = arrivalDate.toLocaleTimeString('tr-TR', {
               hour: '2-digit', 
-              minute: '2-digit',
-              day: 'numeric',
-              month: 'short'
+              minute: '2-digit'
             });
+            
+            // If arrival is next day, add +1 indicator
+            if (arrivalDate.getDate() !== departureDate.getDate()) {
+              arrivalTime += ' +1';
+            }
             
             // Calculate total duration in minutes correctly
             const totalTimeMs = arrivalDate.getTime() - departureDate.getTime();
@@ -900,10 +904,26 @@ class TCDDApiService {
             totalDistance = train.segments.reduce((sum, segment) => sum + segment.distance, 0);
           }
           
-          // Get available capacity from booking classes
+          // Get available capacity from booking classes and availabilities
           let availableSeats = 0;
-          if (train.bookingClassCapacities && train.bookingClassCapacities.length > 0) {
+          
+          // Try to get seats from trainLeg's cabinClassAvailabilities (more accurate)
+          if (trainLeg.cabinClassAvailabilities && trainLeg.cabinClassAvailabilities.length > 0) {
+            availableSeats = trainLeg.cabinClassAvailabilities.reduce((sum, cabinAvail) => sum + cabinAvail.availabilityCount, 0);
+          } 
+          // Fallback to train's bookingClassCapacities
+          else if (train.bookingClassCapacities && train.bookingClassCapacities.length > 0) {
             availableSeats = train.bookingClassCapacities.reduce((sum, capacity) => sum + capacity.capacity, 0);
+          }
+          // Try availability.cars if available
+          else if (availability.cars && availability.cars.length > 0) {
+            for (const car of availability.cars) {
+              if (car.availabilities && car.availabilities.length > 0) {
+                for (const carAvail of car.availabilities) {
+                  availableSeats += carAvail.availability || 0;
+                }
+              }
+            }
           }
           
           trains.push({
@@ -912,6 +932,7 @@ class TCDDApiService {
             trainType: train.type || 'Unknown',
             departureTime,
             arrivalTime,
+            departureTimestamp, // For sorting
             duration: totalDuration, // in minutes
             distance: Math.round(totalDistance * 100) / 100, // round to 2 decimal places
             price: train.minPrice?.priceAmount || 0,
@@ -927,16 +948,12 @@ class TCDDApiService {
                 arrivalStation: segment.segment.arrivalStation.name,
                 departureTime: segmentDepartureDate.toLocaleTimeString('tr-TR', {
                   hour: '2-digit',
-                  minute: '2-digit',
-                  day: 'numeric',
-                  month: 'short'
+                  minute: '2-digit'
                 }),
                 arrivalTime: segmentArrivalDate.toLocaleTimeString('tr-TR', {
                   hour: '2-digit',
-                  minute: '2-digit',
-                  day: 'numeric',
-                  month: 'short'
-                }),
+                  minute: '2-digit'
+                }) + (segmentArrivalDate.getDate() !== segmentDepartureDate.getDate() ? ' +1' : ''),
                 duration: segment.duration,
                 distance: segment.distance,
                 stops: segment.stops
@@ -946,6 +963,9 @@ class TCDDApiService {
         }
       }
     }
+
+    // Sort trains by departure time
+    trains.sort((a, b) => a.departureTimestamp - b.departureTimestamp);
 
     console.log(`Transformed ${trains.length} trains from API response`);
     return trains;
