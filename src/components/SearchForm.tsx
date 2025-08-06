@@ -15,11 +15,11 @@ export function SearchForm({ onSearch, loading }: SearchFormProps) {
   const [fromStation, setFromStation] = useState<Station | null>(null);
   const [toStation, setToStation] = useState<Station | null>(null);
   
-  // Initialize with tomorrow 09:00 as default departure time (for API calls)
+  // Initialize with tomorrow at noon as default departure time
   const getDefaultDate = () => {
     const tomorrow = new Date();
     tomorrow.setDate(tomorrow.getDate() + 1);
-    tomorrow.setHours(9, 0, 0, 0); // Default to 9 AM for API compatibility
+    tomorrow.setHours(12, 0, 0, 0); // Default to noon for better timezone handling
     return tomorrow;
   };
   

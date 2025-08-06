@@ -38,12 +38,16 @@ export function DateTimePicker({
     if (selectedDate) {
       // Create a new date object to avoid mutation
       const newDate = new Date(selectedDate);
-      // Keep the same time but update the date
-      newDate.setHours(value.getHours(), value.getMinutes(), 0, 0);
+      // Set to noon to avoid timezone issues
+      newDate.setHours(12, 0, 0, 0);
       onChange(newDate);
       setIsOpen(false);
     }
   };
+
+  // Force today as minimum date
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
 
   return (
     <div className={cn("space-y-2", className)}>
@@ -69,24 +73,25 @@ export function DateTimePicker({
             selected={value}
             onSelect={handleDateSelect}
             disabled={(date) => {
-              const today = new Date();
-              today.setHours(0, 0, 0, 0);
-              
               const checkDate = new Date(date);
               checkDate.setHours(0, 0, 0, 0);
               
+              // Don't allow past dates
               if (checkDate < today) return true;
               if (minDate && checkDate < minDate) return true;
               
               // Don't allow dates more than 60 days in the future
               const maxDate = new Date();
               maxDate.setDate(maxDate.getDate() + 60);
+              maxDate.setHours(23, 59, 59, 999);
               if (checkDate > maxDate) return true;
               
               return false;
             }}
             initialFocus
             fixedWeeks
+            showOutsideDays={false}
+            className="rounded-md border"
           />
         </PopoverContent>
       </Popover>

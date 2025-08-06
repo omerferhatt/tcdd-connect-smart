@@ -3,6 +3,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card } from '@/components/ui/card';
 import { findStations, Station } from '@/lib/railway-data';
+import TCDDApiService from '@/lib/tcdd-api';
 import { MapPin } from '@phosphor-icons/react';
 
 interface StationSearchProps {
@@ -18,6 +19,7 @@ export function StationSearch({ label, placeholder, value, onChange, disabled }:
   const [suggestions, setSuggestions] = useState<Station[]>([]);
   const [showSuggestions, setShowSuggestions] = useState(false);
   const [focusedIndex, setFocusedIndex] = useState(-1);
+  const [loading, setLoading] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
   const suggestionsRef = useRef<HTMLDivElement>(null);
 
@@ -28,15 +30,58 @@ export function StationSearch({ label, placeholder, value, onChange, disabled }:
   }, [value]);
 
   useEffect(() => {
-    if (query.trim()) {
-      const results = findStations(query);
-      setSuggestions(results);
-      setShowSuggestions(results.length > 0);
-    } else {
-      setSuggestions([]);
-      setShowSuggestions(false);
-    }
-    setFocusedIndex(-1);
+    const searchStations = async () => {
+      if (query.trim()) {
+        setLoading(true);
+        try {
+          // First try API stations
+          const tcddStations = await TCDDApiService.findStationsByQuery(query);
+          
+          // Convert TCDD stations to our Station format
+          const convertedStations: Station[] = tcddStations.map(tcddStation => ({
+            id: `tcdd-${tcddStation.id}`,
+            name: tcddStation.name,
+            city: tcddStation.cityName || tcddStation.name,
+            region: 'Unknown',
+            tcddId: tcddStation.id
+          }));
+          
+          // Also search in our hardcoded stations as fallback
+          const localResults = findStations(query);
+          
+          // Combine and deduplicate results
+          const allResults = [...convertedStations, ...localResults];
+          const uniqueResults = allResults.reduce((unique, station) => {
+            const exists = unique.find(s => 
+              s.tcddId === station.tcddId || 
+              s.name.toLowerCase() === station.name.toLowerCase()
+            );
+            if (!exists) {
+              unique.push(station);
+            }
+            return unique;
+          }, [] as Station[]);
+          
+          setSuggestions(uniqueResults.slice(0, 10));
+          setShowSuggestions(uniqueResults.length > 0);
+        } catch (error) {
+          console.warn('Failed to fetch stations from API, using local data:', error);
+          // Fallback to local stations
+          const results = findStations(query);
+          setSuggestions(results);
+          setShowSuggestions(results.length > 0);
+        } finally {
+          setLoading(false);
+        }
+      } else {
+        setSuggestions([]);
+        setShowSuggestions(false);
+      }
+      setFocusedIndex(-1);
+    };
+
+    const debounceTimer = setTimeout(searchStations, 300);
+    return () => clearTimeout(debounceTimer);
   }, [query]);
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -104,13 +149,13 @@ export function StationSearch({ label, placeholder, value, onChange, disabled }:
         ref={inputRef}
         id={label.toLowerCase().replace(' ', '-')}
         type="text"
-        placeholder={placeholder}
+        placeholder={loading ? 'İstasyonlar yükleniyor...' : placeholder}
         value={query}
         onChange={handleInputChange}
         onKeyDown={handleKeyDown}
         onBlur={handleBlur}
         onFocus={() => suggestions.length > 0 && setShowSuggestions(true)}
-        disabled={disabled}
+        disabled={disabled || loading}
         className="mt-1"
       />
       

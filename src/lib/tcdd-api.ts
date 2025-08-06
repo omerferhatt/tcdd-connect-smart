@@ -5,6 +5,9 @@ export interface TCDDStation {
   name: string;
   cityId?: number;
   cityName?: string;
+  lat?: number;
+  lng?: number;
+  active?: boolean;
 }
 
 export interface TCDDRoute {
@@ -43,6 +46,15 @@ export interface TCDDApiResponse {
   message?: string;
 }
 
+export interface TCDDStationPair {
+  departure: number;
+  arrival: number;
+}
+
+// Cached stations and pairs
+let cachedStations: TCDDStation[] | null = null;
+let cachedStationPairs: TCDDStationPair[] | null = null;
+
 // Known TCDD stations with their API IDs
 export const TCDD_STATIONS: TCDDStation[] = [
   { id: 98, name: 'ANKARA GAR' },
@@ -79,6 +91,7 @@ export const TCDD_STATIONS: TCDDStation[] = [
 
 class TCDDApiService {
   private static readonly BASE_URL = 'https://web-api-prod-ytp.tcddtasimacilik.gov.tr/tms';
+  private static readonly CDN_URL = 'https://cdn-api-prod-ytp.tcddtasimacilik.gov.tr/datas';
   private static readonly UNIT_ID = '3895';
   
   // Developer auth token that's always valid
@@ -94,6 +107,146 @@ class TCDDApiService {
 
   static setAuthToken(token: string) {
     this.authToken = token;
+  }
+
+  // Fetch all stations from TCDD API
+  static async fetchStations(): Promise<TCDDStation[]> {
+    try {
+      if (cachedStations) {
+        return cachedStations;
+      }
+
+      const token = await this.getAuthToken();
+      
+      const response = await fetch(`${this.CDN_URL}/stations.json?environment=dev&userId=1`, {
+        method: 'GET',
+        headers: {
+          'Accept': 'application/json, text/plain, */*',
+          'Accept-Language': 'tr',
+          'Authorization': token,
+          'sec-ch-ua-platform': '"Windows"',
+          'sec-ch-ua': '"Not)A;Brand";v="8", "Chromium";v="138", "Google Chrome";v="138"',
+          'sec-ch-ua-mobile': '?0',
+          'unit-id': this.UNIT_ID,
+          'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/138.0.0.0 Safari/537.36'
+        }
+      });
+
+      if (!response.ok) {
+        if (response.status === 401) {
+          throw new Error('Authentication failed when fetching stations');
+        }
+        throw new Error(`Failed to fetch stations: HTTP ${response.status}`);
+      }
+
+      const data = await response.json();
+      
+      // Transform the API response to match our interface
+      const stations: TCDDStation[] = [];
+      if (Array.isArray(data)) {
+        stations.push(...data.map((station: any) => ({
+          id: station.id || station.stationId,
+          name: station.name || station.stationName || 'Unknown',
+          cityId: station.cityId,
+          cityName: station.cityName,
+          lat: station.lat || station.latitude,
+          lng: station.lng || station.longitude,
+          active: station.active !== false
+        })));
+      } else if (data.stations && Array.isArray(data.stations)) {
+        stations.push(...data.stations.map((station: any) => ({
+          id: station.id || station.stationId,
+          name: station.name || station.stationName || 'Unknown',
+          cityId: station.cityId,
+          cityName: station.cityName,
+          lat: station.lat || station.latitude,
+          lng: station.lng || station.longitude,
+          active: station.active !== false
+        })));
+      }
+
+      // Filter out invalid stations and cache the result
+      cachedStations = stations.filter(s => s.id && s.name && s.name !== 'Unknown');
+      
+      console.log(`Fetched ${cachedStations.length} stations from TCDD API`);
+      return cachedStations;
+      
+    } catch (error) {
+      console.error('Error fetching stations from TCDD API:', error);
+      // Fallback to hardcoded stations
+      return TCDD_STATIONS;
+    }
+  }
+
+  // Fetch station pairs (which routes are available)
+  static async fetchStationPairs(): Promise<TCDDStationPair[]> {
+    try {
+      if (cachedStationPairs) {
+        return cachedStationPairs;
+      }
+
+      const token = await this.getAuthToken();
+      
+      const response = await fetch(`${this.CDN_URL}/station-pairs-INTERNET.json?environment=dev&userId=1`, {
+        method: 'GET',
+        headers: {
+          'Accept': 'application/json, text/plain, */*',
+          'Accept-Language': 'tr',
+          'Authorization': token,
+          'sec-ch-ua-platform': '"Windows"',
+          'sec-ch-ua': '"Not)A;Brand";v="8", "Chromium";v="138", "Google Chrome";v="138"',
+          'sec-ch-ua-mobile': '?0',
+          'unit-id': this.UNIT_ID,
+          'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/138.0.0.0 Safari/537.36'
+        }
+      });
+
+      if (!response.ok) {
+        if (response.status === 401) {
+          throw new Error('Authentication failed when fetching station pairs');
+        }
+        throw new Error(`Failed to fetch station pairs: HTTP ${response.status}`);
+      }
+
+      const data = await response.json();
+      
+      // Transform the API response
+      const pairs: TCDDStationPair[] = [];
+      if (Array.isArray(data)) {
+        pairs.push(...data.map((pair: any) => ({
+          departure: pair.departure || pair.departureStationId || pair.from,
+          arrival: pair.arrival || pair.arrivalStationId || pair.to
+        })));
+      } else if (data.pairs && Array.isArray(data.pairs)) {
+        pairs.push(...data.pairs.map((pair: any) => ({
+          departure: pair.departure || pair.departureStationId || pair.from,
+          arrival: pair.arrival || pair.arrivalStationId || pair.to
+        })));
+      }
+
+      // Cache the result
+      cachedStationPairs = pairs.filter(p => p.departure && p.arrival);
+      
+      console.log(`Fetched ${cachedStationPairs.length} station pairs from TCDD API`);
+      return cachedStationPairs;
+      
+    } catch (error) {
+      console.error('Error fetching station pairs from TCDD API:', error);
+      return [];
+    }
+  }
+
+  // Check if a direct route exists between two stations
+  static async hasDirectRoute(fromStationId: number, toStationId: number): Promise<boolean> {
+    try {
+      const pairs = await this.fetchStationPairs();
+      return pairs.some(pair => 
+        pair.departure === fromStationId && pair.arrival === toStationId
+      );
+    } catch (error) {
+      console.error('Error checking direct route:', error);
+      return false;
+    }
   }
 
   static async searchTrainAvailability(
@@ -237,21 +390,55 @@ class TCDDApiService {
     }).filter(train => train.trainNumber !== 'Bilinmiyor'); // Filter out invalid entries
   }
 
-  static findStationByName(name: string): TCDDStation | undefined {
-    const normalizedName = name.toLowerCase().trim();
-    return TCDD_STATIONS.find(station => 
-      station.name.toLowerCase().includes(normalizedName) ||
-      normalizedName.includes(station.name.toLowerCase())
-    );
+  static async findStationByName(name: string): Promise<TCDDStation | undefined> {
+    try {
+      const stations = await this.fetchStations();
+      const normalizedName = name.toLowerCase().trim();
+      return stations.find(station => 
+        station.name.toLowerCase().includes(normalizedName) ||
+        normalizedName.includes(station.name.toLowerCase())
+      );
+    } catch (error) {
+      console.error('Error finding station by name:', error);
+      // Fallback to hardcoded stations
+      const normalizedName = name.toLowerCase().trim();
+      return TCDD_STATIONS.find(station => 
+        station.name.toLowerCase().includes(normalizedName) ||
+        normalizedName.includes(station.name.toLowerCase())
+      );
+    }
   }
 
-  static findStationsByQuery(query: string): TCDDStation[] {
+  static async findStationsByQuery(query: string): Promise<TCDDStation[]> {
     if (!query.trim()) return [];
     
-    const normalizedQuery = query.toLowerCase().trim();
-    return TCDD_STATIONS.filter(station =>
-      station.name.toLowerCase().includes(normalizedQuery)
-    ).slice(0, 10);
+    try {
+      const stations = await this.fetchStations();
+      const normalizedQuery = query.toLowerCase().trim();
+      return stations
+        .filter(station =>
+          station.name.toLowerCase().includes(normalizedQuery) ||
+          (station.cityName && station.cityName.toLowerCase().includes(normalizedQuery))
+        )
+        .slice(0, 10);
+    } catch (error) {
+      console.error('Error finding stations by query:', error);
+      // Fallback to hardcoded stations
+      const normalizedQuery = query.toLowerCase().trim();
+      return TCDD_STATIONS.filter(station =>
+        station.name.toLowerCase().includes(normalizedQuery)
+      ).slice(0, 10);
+    }
+  }
+
+  // Get all stations for dropdown/autocomplete
+  static async getAllStations(): Promise<TCDDStation[]> {
+    try {
+      return await this.fetchStations();
+    } catch (error) {
+      console.error('Error getting all stations:', error);
+      return TCDD_STATIONS;
+    }
   }
 }
 

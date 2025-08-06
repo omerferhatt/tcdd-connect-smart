@@ -297,15 +297,12 @@ export async function searchTrainsWithAPI(fromStation: Station, toStation: Stati
     throw new Error('Stations do not have TCDD API IDs');
   }
   
-  // If API didn't return results, fall back to mock data
+  // Try to find connected routes if no direct routes found
   if (journeys.length === 0) {
-    console.log('No API results, falling back to mock data');
-    return findConnectedRoutes(fromStation.id, toStation.id, 2);
+    console.log('No direct routes found, searching for connected routes...');
+    const connectedJourneys = await findConnectedRoutesWithAPI(fromStation, toStation, departureDate);
+    journeys.push(...connectedJourneys);
   }
-  
-  // Try to find connecting routes through API for intermediate stations
-  // This is complex and would require multiple API calls, so for now we'll skip it
-  // await findConnectedRoutesWithAPI(fromStation, toStation, journeys);
   
   return journeys.sort((a, b) => {
     if (a.totalDuration !== b.totalDuration) {
@@ -318,47 +315,71 @@ export async function searchTrainsWithAPI(fromStation: Station, toStation: Stati
 async function findConnectedRoutesWithAPI(
   fromStation: Station, 
   toStation: Station, 
-  journeys: Journey[]
-): Promise<void> {
-  // Try to find one-connection routes through major hubs
-  const majorHubs = TURKISH_STATIONS.filter(station => 
-    ['ank', 'esk', 'izm', 'ada', 'koc'].includes(station.id) &&
-    station.id !== fromStation.id && 
-    station.id !== toStation.id
-  );
+  departureDate: Date
+): Promise<Journey[]> {
+  const journeys: Journey[] = [];
+  const dateStr = `${departureDate.getDate().toString().padStart(2, '0')}-${(departureDate.getMonth() + 1).toString().padStart(2, '0')}-${departureDate.getFullYear()}`;
+  
+  // Get real stations from API
+  const allStations = await TCDDApiService.getAllStations();
+  
+  // Convert TCDD stations to our Station format for major hubs
+  const majorHubTcddIds = [98, 87, 180, 160, 82]; // Ankara, Eskişehir, İzmir, Adana, Kocaeli
+  const majorHubs = allStations
+    .filter(tcddStation => 
+      majorHubTcddIds.includes(tcddStation.id) &&
+      tcddStation.id !== fromStation.tcddId && 
+      tcddStation.id !== toStation.tcddId
+    )
+    .map(tcddStation => ({
+      id: `tcdd-${tcddStation.id}`,
+      name: tcddStation.name,
+      city: tcddStation.cityName || tcddStation.name,
+      region: 'Unknown',
+      tcddId: tcddStation.id
+    }));
   
   for (const hub of majorHubs) {
     if (!hub.tcddId || !fromStation.tcddId || !toStation.tcddId) continue;
     
     try {
+      // Check if routes exist before making API calls
+      const hasFirstLeg = await TCDDApiService.hasDirectRoute(fromStation.tcddId, hub.tcddId);
+      const hasSecondLeg = await TCDDApiService.hasDirectRoute(hub.tcddId, toStation.tcddId);
+      
+      if (!hasFirstLeg || !hasSecondLeg) {
+        continue;
+      }
+      
       // Search from origin to hub
       const firstLegResponse = await TCDDApiService.searchTrainAvailability(
         fromStation.tcddId,
-        hub.tcddId
+        hub.tcddId,
+        dateStr
       );
       
       // Search from hub to destination
       const secondLegResponse = await TCDDApiService.searchTrainAvailability(
         hub.tcddId,
-        toStation.tcddId
+        toStation.tcddId,
+        dateStr
       );
       
       if (firstLegResponse.success && secondLegResponse.success &&
           firstLegResponse.data.length > 0 && secondLegResponse.data.length > 0) {
         
         // Combine compatible train schedules
-        firstLegResponse.data.forEach(firstTrain => {
-          secondLegResponse.data.forEach(secondTrain => {
-            const firstArrival = parseTime(firstTrain.arrivalTime);
-            const secondDeparture = parseTime(secondTrain.departureTime);
+        firstLegResponse.data.forEach((firstTrain, i) => {
+          secondLegResponse.data.forEach((secondTrain, j) => {
+            // Parse times to check if connection is feasible
+            const firstArrival = parseTimeToMinutes(firstTrain.arrivalTime);
+            const secondDeparture = parseTimeToMinutes(secondTrain.departureTime);
             
-            let transferTime = secondDeparture - firstArrival;
-            if (transferTime < 0) transferTime += 24 * 60; // Next day
-            
-            // Check if connection is feasible (30 min to 8 hours)
-            if (transferTime >= 30 && transferTime <= 8 * 60) {
+            // Allow at least 30 minutes for connection
+            const connectionTime = secondDeparture - firstArrival;
+            if (connectionTime >= 30 && connectionTime <= 360) { // Max 6 hours wait
               const firstSegment: RouteSegment = {
-                id: `api-${firstTrain.trainNumber}-1`,
+                id: `segment-${hub.id}-${i}-1`,
                 from: fromStation,
                 to: hub,
                 departure: firstTrain.departureTime,
@@ -369,7 +390,7 @@ async function findConnectedRoutesWithAPI(
               };
               
               const secondSegment: RouteSegment = {
-                id: `api-${secondTrain.trainNumber}-2`,
+                id: `segment-${hub.id}-${j}-2`,
                 from: hub,
                 to: toStation,
                 departure: secondTrain.departureTime,
@@ -379,10 +400,12 @@ async function findConnectedRoutesWithAPI(
                 price: secondTrain.price
               };
               
+              const totalDuration = secondSegment.duration + firstSegment.duration + connectionTime;
+              
               journeys.push({
-                id: `api-connected-${firstTrain.trainNumber}-${secondTrain.trainNumber}`,
+                id: `journey-${hub.id}-${i}-${j}`,
                 segments: [firstSegment, secondSegment],
-                totalDuration: firstTrain.duration + secondTrain.duration + transferTime,
+                totalDuration,
                 totalPrice: firstTrain.price + secondTrain.price,
                 connectionCount: 1
               });
@@ -391,7 +414,25 @@ async function findConnectedRoutesWithAPI(
         });
       }
     } catch (error) {
-      console.warn(`Failed to search via ${hub.name}:`, error);
+      console.warn(`Failed to find connections through ${hub.name}:`, error);
+      continue;
     }
+  }
+  
+  return journeys.sort((a, b) => {
+    if (a.totalDuration !== b.totalDuration) {
+      return a.totalDuration - b.totalDuration;
+    }
+    return a.connectionCount - b.connectionCount;
+  }).slice(0, 5); // Limit connected routes
+}
+
+function parseTimeToMinutes(timeStr: string): number {
+  try {
+    const [hours, minutes] = timeStr.split(':').map(Number);
+    return hours * 60 + minutes;
+  } catch (error) {
+    console.warn('Failed to parse time:', timeStr);
+    return 0;
   }
 }
