@@ -93,10 +93,12 @@ function App() {
         const directCount = results.filter(j => j.connectionCount === 0).length;
         const connectedCount = results.filter(j => j.connectionCount > 0).length;
         
-        if (directCount > 0) {
+        if (directCount > 0 && connectedCount > 0) {
           toast.success(`${directCount} direkt sefer ve ${connectedCount} aktarmalı seçenek bulundu`);
-        } else {
-          toast.info(`${connectedCount} aktarmalı seçenek bulundu`);
+        } else if (directCount > 0) {
+          toast.success(`${directCount} direkt sefer bulundu`);
+        } else if (connectedCount > 0) {
+          toast.success(`${connectedCount} aktarmalı rota bulundu! Direkt sefer mevcut değil.`);
         }
       }
     } catch (error) {
@@ -119,7 +121,8 @@ function App() {
                 TCDD Bağlantılı Seyahatler
               </h1>
               <p className="text-muted-foreground">
-                Resmi sitede görünmeyen aktarmalı tren bağlantılarını keşfedin
+                Resmi sitede görünmeyen aktarmalı tren bağlantılarını keşfedin. 
+                TCDD'nin gerçek istasyon ağı verisi kullanılarak alternatif rotalar bulunur.
               </p>
             </div>
             
@@ -241,8 +244,9 @@ function App() {
               </p>
               
               <div className="text-xs bg-muted rounded p-2 max-w-2xl mx-auto">
-                <strong>API Entegrasyonu:</strong> Bu uygulama TCDD'nin gerçek API'sini kullanıyor. 
-                Geliştirici token otomatik yapılandırılmıştır. API hata verirse demo mod için API Ayarları'nı kullanın.
+                <strong>Akıllı Rota Sistemi:</strong> Bu uygulama TCDD'nin gerçek istasyon ağı verilerini kullanarak 
+                node-based graph algoritmasıyla aktarmalı rotalar bulur. Geliştirici API token'ı otomatik yapılandırılmıştır. 
+                API hata verirse demo mod için API Ayarları'nı kullanın.
               </div>
             </div>
           </div>

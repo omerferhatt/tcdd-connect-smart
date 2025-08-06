@@ -1,4 +1,5 @@
 import TCDDApiService, { TCDDTrainAvailability } from './tcdd-api';
+import { routeGraph, ConnectedRoute } from './route-finder';
 
 export interface Station {
   id: string;
@@ -237,69 +238,111 @@ export function formatPrice(price: number): string {
 // API Integration Functions
 
 export async function searchTrainsWithAPI(fromStation: Station, toStation: Station, departureDate?: Date): Promise<Journey[]> {
-  // First try direct routes from API
+  // Initialize the route graph-based search
   const journeys: Journey[] = [];
   
   if (fromStation.tcddId && toStation.tcddId) {
     try {
       // Format date for API (YYYY-MM-DD format) - ensure correct date formatting
-      let dateString = '';
+      let actualDate = new Date();
       if (departureDate) {
         // Use the date directly without timezone adjustment to prevent date shifting
-        const year = departureDate.getFullYear();
-        const month = (departureDate.getMonth() + 1).toString().padStart(2, '0');
-        const day = departureDate.getDate().toString().padStart(2, '0');
-        dateString = `${year}-${month}-${day}`;
-        console.log(`Using selected date: ${dateString} from input: ${departureDate.toISOString()}`);
+        actualDate = new Date(departureDate);
+        console.log(`Using selected date: ${actualDate.toISOString().split('T')[0]} from input: ${departureDate.toISOString()}`);
       } else {
         // Use tomorrow if no date provided
-        const tomorrow = new Date();
-        tomorrow.setDate(tomorrow.getDate() + 1);
-        const year = tomorrow.getFullYear();
-        const month = (tomorrow.getMonth() + 1).toString().padStart(2, '0');
-        const day = tomorrow.getDate().toString().padStart(2, '0');
-        dateString = `${year}-${month}-${day}`;
+        actualDate.setDate(actualDate.getDate() + 1);
       }
       
-      console.log(`Searching TCDD API: ${fromStation.name} -> ${toStation.name} on ${dateString}`);
+      console.log(`Searching TCDD API with route graph: ${fromStation.name} -> ${toStation.name} on ${actualDate.toISOString().split('T')[0]}`);
       
-      const apiResponse = await TCDDApiService.searchTrainAvailability(
+      // Use the new route graph system to find connected routes
+      const connectedRoutes = await routeGraph.findConnectedRoutes(
         fromStation.tcddId,
         toStation.tcddId,
-        dateString
+        actualDate,
+        2 // Max 2 connections
       );
       
-      if (apiResponse.success && apiResponse.data.length > 0) {
-        // Convert API response to our Journey format
-        apiResponse.data.forEach((train: any, index: number) => {
-          const segment: RouteSegment = {
-            id: `api-${train.trainNumber}-${index}`,
-            from: fromStation,
-            to: toStation,
-            departure: train.departureTime || '00:00',
-            arrival: train.arrivalTime || '00:00',
-            duration: train.duration || 0,
-            trainNumber: train.trainNumber || train.trainName || 'Unknown',
-            price: train.price || 0,
-            availableSeats: train.availableSeats || 0,
-            departureTimestamp: train.departureTimestamp || 0
-          };
+      if (connectedRoutes.length > 0) {
+        // Convert ConnectedRoute to Journey format
+        connectedRoutes.forEach((route: ConnectedRoute, index: number) => {
+          const segments: RouteSegment[] = route.segments.map((segment, segIndex) => ({
+            id: `route-${index}-segment-${segIndex}`,
+            from: {
+              id: `tcdd-${segment.fromStationId}`,
+              name: segment.fromStationName,
+              city: segment.fromStationName,
+              region: 'Unknown',
+              tcddId: segment.fromStationId
+            },
+            to: {
+              id: `tcdd-${segment.toStationId}`,
+              name: segment.toStationName,
+              city: segment.toStationName,
+              region: 'Unknown',
+              tcddId: segment.toStationId
+            },
+            departure: segment.trains.length > 0 ? segment.trains[0].departureTime || '00:00' : '00:00',
+            arrival: segment.trains.length > 0 ? segment.trains[0].arrivalTime || '00:00' : '00:00',
+            duration: segment.trains.length > 0 ? segment.trains[0].duration || 0 : 0,
+            trainNumber: segment.trains.length > 0 ? segment.trains[0].trainNumber || 'Unknown' : 'Unknown',
+            price: segment.trains.length > 0 ? segment.trains[0].price || 0 : 0,
+            availableSeats: segment.trains.length > 0 ? segment.trains[0].availableSeats || 0 : 0,
+            departureTimestamp: segment.trains.length > 0 ? segment.trains[0].departureTimestamp || 0 : 0
+          }));
           
           journeys.push({
-            id: `api-direct-${train.trainNumber}-${index}`,
-            segments: [segment],
-            totalDuration: train.duration || 0,
-            totalPrice: train.price || 0,
-            connectionCount: 0
+            id: `connected-route-${index}`,
+            segments,
+            totalDuration: route.totalDuration,
+            totalPrice: route.totalPrice,
+            connectionCount: route.connectionCount
           });
         });
         
-        console.log(`Found ${journeys.length} direct routes from API`);
+        console.log(`Found ${journeys.length} routes (${connectedRoutes.filter(r => r.connectionCount === 0).length} direct, ${connectedRoutes.filter(r => r.connectionCount > 0).length} connected) from route graph`);
       } else {
-        console.log('No direct routes found from API, message:', apiResponse.message);
+        console.log('No routes found from route graph, trying fallback...');
+        
+        // Fallback to direct API search if route graph doesn't find anything
+        const dateString = actualDate.toISOString().split('T')[0];
+        const apiResponse = await TCDDApiService.searchTrainAvailability(
+          fromStation.tcddId,
+          toStation.tcddId,
+          dateString
+        );
+        
+        if (apiResponse.success && apiResponse.data.length > 0) {
+          // Convert API response to our Journey format
+          apiResponse.data.forEach((train: any, index: number) => {
+            const segment: RouteSegment = {
+              id: `api-${train.trainNumber}-${index}`,
+              from: fromStation,
+              to: toStation,
+              departure: train.departureTime || '00:00',
+              arrival: train.arrivalTime || '00:00',
+              duration: train.duration || 0,
+              trainNumber: train.trainNumber || train.trainName || 'Unknown',
+              price: train.price || 0,
+              availableSeats: train.availableSeats || 0,
+              departureTimestamp: train.departureTimestamp || 0
+            };
+            
+            journeys.push({
+              id: `api-direct-${train.trainNumber}-${index}`,
+              segments: [segment],
+              totalDuration: train.duration || 0,
+              totalPrice: train.price || 0,
+              connectionCount: 0
+            });
+          });
+          
+          console.log(`Found ${journeys.length} direct routes from fallback API`);
+        }
       }
     } catch (error) {
-      console.warn('API search failed:', error);
+      console.warn('Route graph search failed:', error);
       throw error; // Re-throw to trigger fallback in calling code
     }
   } else {
@@ -307,14 +350,7 @@ export async function searchTrainsWithAPI(fromStation: Station, toStation: Stati
     throw new Error('Stations do not have TCDD API IDs');
   }
   
-  // Try to find connected routes if no direct routes found
-  if (journeys.length === 0) {
-    console.log('No direct routes found, searching for connected routes...');
-    const connectedJourneys = await findConnectedRoutesWithAPI(fromStation, toStation, departureDate);
-    journeys.push(...connectedJourneys);
-  }
-  
-  // Sort by departure time first, then by connection count
+  // Sort by connection count first (direct routes first), then by departure time
   return journeys.sort((a, b) => {
     if (a.connectionCount !== b.connectionCount) {
       return a.connectionCount - b.connectionCount; // Prefer direct routes
@@ -323,7 +359,7 @@ export async function searchTrainsWithAPI(fromStation: Station, toStation: Stati
     const aTime = a.segments[0].departureTimestamp || parseTimeToMinutes(a.segments[0].departure);
     const bTime = b.segments[0].departureTimestamp || parseTimeToMinutes(b.segments[0].departure);
     return aTime - bTime;
-  }).slice(0, 10);
+  }).slice(0, 15); // Increase limit to show more connected options
 }
 
 async function findConnectedRoutesWithAPI(

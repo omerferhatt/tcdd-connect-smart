@@ -115,8 +115,15 @@ export function SearchResults({ journeys, fromStation, toStation, loading }: Sea
               <Alert className="mb-4">
                 <Info size={16} />
                 <AlertDescription>
-                  Direkt sefer bulunamadı. Aktarmalı seçenekler aşağıda listeleniyor.
-                  Aktarma sürelerini ve bilet satın alma işlemlerini dikkate alın.
+                  <div className="space-y-2">
+                    <div>
+                      <strong>Direkt sefer bulunamadı.</strong> Ancak aktarmalı seçenekler mevcut!
+                    </div>
+                    <div className="text-sm">
+                      Bu rotalar TCDD'nin gerçek istasyon bağlantıları kullanılarak bulunmuştur. 
+                      Aktarma sürelerini ve ayrı bilet satın alma gereksinimini dikkate alın.
+                    </div>
+                  </div>
                 </AlertDescription>
               </Alert>
             )}
