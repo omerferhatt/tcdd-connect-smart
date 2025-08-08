@@ -1,129 +1,149 @@
 // TCDD API integration service
 
-// Station data from stations.json API
-export interface TCDDStation {
+// TCDD (Turkish State Railways) API Response Types
+// Generated from actual JSON data structures
+
+// ============================================================================
+// SHARED/COMMON INTERFACES
+// ============================================================================
+
+export interface StationStatus {
   id: number;
-  stationNumber: string;
-  areaCode: number;
-  name: string;
-  stationStatus: {
-    id: number;
-    name: string | null;
-    detail: string | null;
-  };
-  stationType: {
-    id: number;
-    name: string | null;
-    detail: string | null;
-  };
-  unitId: number;
-  cityId: number;
-  districtId: number;
-  neighbourhoodId: number;
-  uicCode: string | null;
-  technicalUnit: string | null;
-  stationChefId: number;
+  name: string | null;
   detail: string | null;
-  showOnQuery: boolean;
-  passengerDrop: boolean;
-  ticketSaleActive: boolean;
-  active: boolean;
-  email: string;
-  orangeDeskEmail: string | null;
-  address: string;
-  longitude: number;
-  latitude: number;
-  altitude: number;
-  startKm: number;
-  endKm: number;
-  showOnMap: boolean;
-  passengerAdmission: boolean;
-  disabledAccessibility: boolean;
-  phones: string | null;
-  workingDays: string | null;
-  hardwares: string | null;
-  physicalProperties: string | null;
-  stationPlatforms: string | null;
-  salesChannels: Array<{
-    id: number;
-    station: {
-      id: number;
-      stationNumber: string | null;
-      areaCode: number;
-      name: string | null;
-      stationStatus: null;
-      stationType: null;
-      unitId: number;
-      cityId: number;
-      districtId: number;
-      neighbourhoodId: number;
-      uicCode: string | null;
-      technicalUnit: string | null;
-      stationChefId: number;
-      detail: string | null;
-      showOnQuery: boolean;
-      passengerDrop: boolean;
-      ticketSaleActive: boolean;
-      active: boolean;
-      email: string | null;
-      orangeDeskEmail: string | null;
-      address: string | null;
-      longitude: number;
-      latitude: number;
-      altitude: number;
-      startKm: number;
-      endKm: number;
-      showOnMap: boolean;
-      passengerAdmission: boolean;
-      disabledAccessibility: boolean;
-      phones: null;
-      workingDays: null;
-      hardwares: null;
-      physicalProperties: null;
-      stationPlatforms: null;
-      salesChannels: null;
-      IATACode: string | null;
-    };
-    saleChannelId: number;
-  }> | null;
-  IATACode: string | null;
 }
 
-// Station pairs data from station-pairs-INTERNET.json API  
-export interface TCDDStationPair {
+export interface StationType {
+  id: number;
+  name: string | null;
+  detail: string | null;
+}
+
+export interface Country {
+  id: number;
+  name: string;
+  code: string;
+}
+
+export interface District {
+  id: number;
+  name: string;
+  countryId?: number;
+  // Additional fields can be added if needed
+}
+
+export interface CarAvailability {
+  trainCarId: number;
+  trainCarName: string | null;
+  cabinClass: CabinClass;
+  availability: number;
+  pricingList: PricingItem[];
+  additionalServices: unknown[];
+}
+
+export interface TrainCar {
+  id: number;
+  name: string;
+  trainId: number;
+  templateId: number;
+  carIndex: number;
+  unlabeled: boolean;
+  capacity: number;
+  cabinClassId: number;
+  availabilities: CarAvailability[];
+}
+
+export interface TrainSegment {
+  departureStationId?: number;
+  arrivalStationId?: number;
+  departureTime?: string;
+  arrivalTime: string;
+}
+
+export interface BookingClassAvailability {
+  bookingClass: BookingClass;
+  price: number;
+  currency: string;
+  availability: number;
+}
+
+export interface CabinClassInfo {
+  cabinClass: CabinClass;
+  availabilityCount: number;
+  minPrice: number | null;
+  minPriceCurrency: string | null;
+  bookingClassAvailabilities: BookingClassAvailability[];
+}
+
+export interface AvailableFareInfo {
+  fareFamily: FareFamily;
+  cabinClasses: CabinClassInfo[];
+}
+
+export interface CabinClassAvailability {
+  cabinClass: CabinClass;
+  availabilityCount: number;
+}
+
+export interface Train {
+  id: number;
+  number: string;
+  name: string;
+  commercialName: string;
+  type: string;
+  line: string | null;
+  reversed: boolean;
+  scheduleId: number;
+  departureStationId: number;
+  arrivalStationId: number;
+  minPrice: Price;
+  reservationLockTime: number;
+  reservable: boolean;
+  bookingClassCapacities: BookingClassCapacity[];
+  segments: TrainSegmentDetail[];
+  cars: TrainCar[];
+  trainSegments: TrainSegment[];
+  totalDistance: number;
+  availableFareInfo: AvailableFareInfo[];
+  cabinClassAvailabilities: CabinClassAvailability[];
+  trainDate: number;
+  trainNumber: string;
+  skipsDay: boolean;
+}
+
+export interface TrainAvailability {
+  trains: Train[];
+  totalTripTime: number;
+  minPrice: number;
+  connection: boolean;
+  dayChanged: boolean;
+}
+
+export interface TrainLeg {
+  trainAvailabilities: TrainAvailability[];
+  resultCount: number;
+}
+
+export interface TCDDTrainAvailabilityResponse {
+  trainLegs: TrainLeg[];
+  legCount: number;
+  roundTripDiscount: number;
+  maxRegionalTrainsRoundTripDays: number;
+}
+
+// ============================================================================
+// STATION PAIRS API INTERFACES (station-pairs.json)
+// ============================================================================
+
+export interface StationPair {
   id: number;
   unitId: number;
   areaCode: number;
   name: string;
   stationCode: string;
-  stationStatus: {
-    id: number;
-    name: string | null;
-    detail: string | null;
-  };
-  stationType: {
-    id: number;
-    name: string | null;
-    detail: string | null;
-  };
-  district: {
-    id: number;
-    name: string;
-    city: {
-      id: number;
-      name: string;
-      country: {
-        id: number;
-        name: string;
-        code: string;
-      };
-      latitude: number;
-      longitude: number;
-      timezone: string;
-    };
-    latitude: number;
-    longitude: number;
-  } | null;
+  stationStatus: StationStatus;
+  stationType: StationType;
+  district: District | null;
   passengerDrop: boolean;
   ticketSaleActive: boolean;
   longitude: number;
@@ -131,11 +151,18 @@ export interface TCDDStationPair {
   altitude: number;
   international: boolean;
   domestic: boolean;
-  pairs: number[]; // Array of station IDs this station connects to
-  salesChannels: string | null;
-  stationTrainTypes: string[] | null;
+  pairs: number[];
+  salesChannels: unknown[] | null;
+  stationTrainTypes: string[];
   IATACode: string | null;
 }
+
+// The station pairs API response type
+export type TCDDStationPairsResponse = StationPair[];
+
+// ============================================================================
+// LEGACY INTERFACES FOR BACKWARD COMPATIBILITY
+// ============================================================================
 
 export interface TCDDRoute {
   departureStationId: number;
@@ -157,307 +184,17 @@ export interface TCDDSearchRequest {
   searchType: 'DOMESTIC' | 'INTERNATIONAL';
 }
 
-// Train availability response structure
-export interface TCDDBookingClass {
-  id: number;
-  trainId: number;
-  bookingClassId: number;
-  capacity: number;
-}
+// Legacy response types - mapped to new interfaces
+export type TrainAvailabilityData = TCDDTrainAvailabilityResponse;
 
-export interface TCDDSegment {
-  id: number;
-  departureTime: number; // Unix timestamp in milliseconds
-  arrivalTime: number; // Unix timestamp in milliseconds
-  stops: boolean;
-  duration: number; // in minutes
-  stopDuration: number;
-  distance: number;
-  segment: {
-    id: number;
-    name: string;
-    departureStation: {
-      id: number;
-      stationNumber: string;
-      areaCode: number;
-      name: string;
-      stationStatus: {
-        id: number;
-        name: string | null;
-        detail: string | null;
-      };
-      stationType: {
-        id: number;
-        name: string | null;
-        detail: string | null;
-      };
-      unitId: number;
-      cityId: number;
-      districtId: number;
-      neighbourhoodId: number | string | null;
-      uicCode: string | null;
-      technicalUnit: string | null;
-      stationChefId: number;
-      detail: string | null;
-      showOnQuery: boolean;
-      passengerDrop: boolean;
-      ticketSaleActive: boolean;
-      active: boolean;
-      email: string;
-      orangeDeskEmail: string | null;
-      address: string | null;
-      longitude: number;
-      latitude: number;
-      altitude: number;
-      startKm: number;
-      endKm: number;
-      showOnMap: boolean;
-      passengerAdmission: boolean;
-      disabledAccessibility: boolean;
-      phones: string | null;
-      workingDays: string | null;
-      hardwares: string | null;
-      physicalProperties: string | null;
-      stationPlatforms: string | null;
-      salesChannels: string | null;
-      IATACode: string | null;
-    };
-    arrivalStation: {
-      id: number;
-      stationNumber: string;
-      areaCode: number;
-      name: string;
-      stationStatus: {
-        id: number;
-        name: string | null;
-        detail: string | null;
-      };
-      stationType: {
-        id: number;
-        name: string | null;
-        detail: string | null;
-      };
-      unitId: number;
-      cityId: number;
-      districtId: number;
-      neighbourhoodId: number | string | null;
-      uicCode: string | null;
-      technicalUnit: string | null;
-      stationChefId: number;
-      detail: string | null;
-      showOnQuery: boolean;
-      passengerDrop: boolean;
-      ticketSaleActive: boolean;
-      active: boolean;
-      email: string;
-      orangeDeskEmail: string | null;
-      address: string;
-      longitude: number;
-      latitude: number;
-      altitude: number;
-      startKm: number;
-      endKm: number;
-      showOnMap: boolean;
-      passengerAdmission: boolean;
-      disabledAccessibility: boolean;
-      phones: string | null;
-      workingDays: string | null;
-      hardwares: string | null;
-      physicalProperties: string | null;
-      stationPlatforms: string | null;
-      salesChannels: string | null;
-      IATACode: string | null;
-    };
-    lineId: number;
-    lineOrder: number;
-  };
-}
-
-export interface TCDDTrain {
-  id: number;
-  number: string;
-  name: string;
-  commercialName: string;
-  type: string;
-  line: string | null;
-  reversed: boolean;
-  scheduleId: number;
-  departureStationId: number;
-  arrivalStationId: number;
-  minPrice: {
-    type: string | null;
-    priceAmount: number;
-    priceCurrency: string;
-  };
-  reservationLockTime: number;
-  reservable: boolean;
-  bookingClassCapacities: TCDDBookingClass[];
-  segments: TCDDSegment[];
-}
-
-export interface TCDDTrainAvailability {
-  trains: TCDDTrain[];
-  cars: Array<{
-    id: number;
-    name: string;
-    trainId: number;
-    templateId: number;
-    carIndex: number;
-    unlabeled: boolean;
-    capacity: number;
-    cabinClassId: number;
-    availabilities: Array<{
-      trainCarId: number;
-      trainCarName: string | null;
-      cabinClass: {
-        id: number;
-        code: string;
-        name: string;
-        additionalServices: null;
-        bookingClassModels: null;
-        showAvailabilityOnQuery: boolean;
-      } | null;
-      availability: number;
-      pricingList: Array<{
-        basePricingId: number;
-        bookingClass: {
-          id: number;
-          code: string;
-          name: string;
-          cabinClass: {
-            id: number;
-            code: string | null;
-            name: string | null;
-            additionalServices: null;
-            bookingClassModels: null;
-            showAvailabilityOnQuery: boolean;
-          };
-          fareFamily: {
-            id: number;
-            name: string;
-          };
-        };
-        cabinClassId: number;
-        basePricingType: string;
-        fareBasis: {
-          code: string;
-          factor: number;
-          price: {
-            type: string | null;
-            priceAmount: number;
-            priceCurrency: string;
-          };
-        };
-        basePrice: {
-          type: string | null;
-          priceAmount: number;
-          priceCurrency: string;
-        };
-        crudePrice: {
-          type: string | null;
-          priceAmount: number;
-          priceCurrency: string;
-        };
-        baseTransportationCost: {
-          type: string | null;
-          priceAmount: number;
-          priceCurrency: string;
-        };
-        availability: number;
-      }>;
-      additionalServices: Array<{
-        additionalService: {
-          id: number;
-          additionalServiceTypeId: number;
-          name: string;
-          description: string;
-          code: string;
-          active: boolean;
-          freeForPermi: boolean;
-          actAsGroup: boolean;
-          basePrice: Array<{
-            id: number;
-            additionalServiceId: number;
-            type: string;
-            priceAmount: number;
-            priceCurrency: string;
-            startDate: string;
-            endDate: string;
-          }>;
-          pricingPeriods: string | null;
-        };
-        priceAmount: number;
-        currency: string;
-      }>;
-    }>;
-  }>;
-}
-
-export interface TCDDTrainLeg {
-  trainAvailabilities: TCDDTrainAvailability[];
-  trainSegments: Array<{
-    departureStationId: number;
-    arrivalStationId: number;
-    departureTime: string; // "YYYY-MM-DDTHH:mm:ss"
-    arrivalTime: string; // "YYYY-MM-DDTHH:mm:ss"
-  }>;
-  totalDistance: number;
-  availableFareInfo: Array<{
-    fareFamily: {
-      id: number;
-      name: string;
-    };
-    cabinClasses: Array<{
-      cabinClass: {
-        id: number;
-        code: string;
-        name: string;
-        additionalServices: null;
-        bookingClassModels: null;
-        showAvailabilityOnQuery: boolean;
-      };
-      availabilityCount: number;
-      minPrice: number;
-      minPriceCurrency: string;
-      bookingClassAvailabilities: Array<{
-        bookingClass: {
-          id: number;
-          code: string;
-          name: string;
-          cabinClass: {
-            id: number;
-            code: string | null;
-            name: string | null;
-            additionalServices: null;
-            bookingClassModels: null;
-            showAvailabilityOnQuery: boolean;
-          };
-          fareFamily: {
-            id: number;
-            name: string;
-          };
-        };
-        price: number;
-        currency: string;
-        availability: number;
-      }>;
-    }>;
-  }>;
-  cabinClassAvailabilities: Array<{
-    cabinClass: {
-      id: number;
-      code: string;
-      name: string;
-      additionalServices: null;
-      bookingClassModels: null;
-      showAvailabilityOnQuery: boolean;
-    };
-    availabilityCount: number;
-  }>;
-  trainDate: number; // Unix timestamp in milliseconds
-  trainNumber: string;
-  skipsDay: boolean;
-}
+// Legacy aliases for backward compatibility  
+export type TCDDBookingClass = BookingClassCapacity;
+export type TCDDSegment = TrainSegmentDetail;
+export type TCDDTrain = Train;
+export type TCDDTrainAvailability = TrainAvailability;
+export type TCDDTrainLeg = TrainLeg;
+export type TCDDStation = Station;
+export type TCDDStationPair = StationPair;
 
 export interface TCDDApiResponse {
   success: boolean;
@@ -465,8 +202,7 @@ export interface TCDDApiResponse {
   message?: string;
 }
 
-export interface TCDDSearchResponse {
-  trainLegs: TCDDTrainLeg[];
+export interface TCDDSearchResponse extends TCDDTrainAvailabilityResponse {
   totalTripTime: number; // This is in milliseconds
   minPrice: number;
   connection: boolean;
@@ -507,12 +243,12 @@ export interface TCDDItemsResponse {
 }
 
 // Cached stations and pairs
-let cachedStations: TCDDStation[] | null = null;
-let cachedStationPairs: TCDDStationPair[] | null = null;
+let cachedStations: Station[] | null = null;
+let cachedStationPairs: StationPair[] | null = null;
 let cachedItems: TCDDItem[] | null = null;
 
 // Known TCDD stations with their API IDs - Simplified fallback structure
-const createFallbackStation = (id: number, name: string): TCDDStation => ({
+const createFallbackStation = (id: number, name: string): Station => ({
   id,
   name,
   stationNumber: '',
@@ -524,7 +260,7 @@ const createFallbackStation = (id: number, name: string): TCDDStation => ({
   districtId: 0,
   neighbourhoodId: 0,
   uicCode: null,
-  technicalUnit: null,
+  technicalUnit: '',
   stationChefId: 0,
   detail: null,
   showOnQuery: true,
@@ -547,11 +283,11 @@ const createFallbackStation = (id: number, name: string): TCDDStation => ({
   hardwares: null,
   physicalProperties: null,
   stationPlatforms: null,
-  salesChannels: null,
+  salesChannels: [],
   IATACode: null
 });
 
-export const TCDD_STATIONS: TCDDStation[] = [
+export const TCDD_STATIONS: Station[] = [
   createFallbackStation(98, 'ANKARA GAR'),
   createFallbackStation(1325, 'İSTANBUL(SÖĞÜTLÜÇEŞME)'),
   createFallbackStation(48, 'İSTANBUL(PENDİK)'),
@@ -594,7 +330,11 @@ class TCDDApiService {
   private static readonly UNIT_ID = '3895';
   
   // Developer auth token (always valid, no need to reauthorize as per user request)
-  private static authToken: string | null = 'eyJhbGciOiJSUzI1NiIsInR5cCIgOiAiSldUIiwia2lkIiA6ICJlVFFicDhDMmpiakp1cnUzQVk2a0ZnV186U29MQXZIMmJ5bTJ2OUg5THhRIn0.eyJleHAiOjE3MjEzODQ0NzAsImlhdCI6MTcyMTM4NDQxMCwianRpIjoiYWFlNjVkNzgtNmRkZS00ZGY4LWEwZWYtYjRkNzZiYjZlODNjIiwiaXNzIjoiaHR0cDovL3l0cC1wcm9kLW1hc3RlcjEudGNkZHRhc2ltYWNpbGlrLmdvdi50cjo4MDgwL3JlYWxtcy9tYXN0ZXIiLCJhdWQiOiJhY2NvdW50Iiwic3ViIjoiMDAzNDI3MmMtNTc2Yi00OTBlLWJhOTgtNTFkMzc1NWNhYjA3IiwidHlwIjoiQmVhcmVyIiwiYXpwIjoidG1zIiwic2Vzc2lvbl9zdGF0ZSI6IjAwYzM4NTJiLTg1YjEtNDMxNS04OGIwLWQ0MWMxMTcyYzA0MSIsImFjciI6IjEiLCJyZWFsbV9hY2Nlc3MiOnsicm9sZXMiOlsiZGVmYXVsdC1yb2xlcy1tYXN0ZXIiLCJvZmZsaW5lX2FjY2VzcyIsInVtYV9hdXRob3JpemF0aW9uIl19LCJyZXNvdXJjZV9hY2Nlc3MiOnsiYWNjb3VudCI6eyJyb2xlcyI6WyJtYW5hZ2UtYWNjb3VudCIsIm1hbmFnZS1hY2NvdW50LWxpbmtzIiwidmlldy1wcm9maWxlIl19fSwic2NvcGUiOiJvcGVuaWQgZW1haWwgcHJvZmlsZSIsInNpZCI6IjAwYzM4NTJiLTg1YjEtNDMxNS04OGIwLWQ0MWMxMTcyYzA0MSIsImVtYWlsX3ZlcmlmaWVkIjpmYWxzZSwicHJlZmVycmVkX3VzZXJuYW1lIjoid2ViIiwiZ2l2ZW5fbmFtZSI6IiIsImZhbWlseV9uYW1lIjoiIn0.AIW_4Qws2wfwxyVg8dgHRT9jB3qNavob2C4mEQIQGl3urzW2jALPx-e51ZwHUb-TXB-X2RPHakonxKnWG6tDIP5aKhiidzXDcr6pDDoYU5DnQhMg1kywyOaMXsjLFjuYN5PAyGUMh6YSOVsg1PzNh-5GrJF44pS47JnB9zk03Pr08napjsZPoRB-5N4GQ49cnx7ePC82Y7YIc-gTew2baqKQPz9_v381Gbm2V38PZDH9KldlcWut7kqQYJFMJ7dkM_entPJn9lFk7R5h5j_06OlQEpWRMQTn9SQ1AYxxmZxBu5XYMKDkn4rzIIVCkdTPJNCt5PvjENjClKFeUA1DOg';
+  private static authToken: string | null = '***REMOVED***';
+  
+  // Settings
+  public static showSoldOutTrains: boolean = true; // Show all trains including sold out ones
+  public static enableSameTrainConnections: boolean = true; // Enable same-train seat changes
 
   static async getAuthToken(): Promise<string> {
     // Return the developer token that's always valid
@@ -609,7 +349,7 @@ class TCDDApiService {
   }
 
   // Fetch all stations from TCDD API
-  static async fetchStations(): Promise<TCDDStation[]> {
+  static async fetchStations(): Promise<Station[]> {
     try {
       if (cachedStations) {
         return cachedStations;
@@ -662,7 +402,7 @@ class TCDDApiService {
             districtId: station.districtId || 0,
             neighbourhoodId: station.neighbourhoodId || 0,
             uicCode: station.uicCode,
-            technicalUnit: station.technicalUnit,
+            technicalUnit: station.technicalUnit || '',
             stationChefId: station.stationChefId || 0,
             detail: station.detail,
             showOnQuery: station.showOnQuery || false,
@@ -680,12 +420,12 @@ class TCDDApiService {
             showOnMap: station.showOnMap || false,
             passengerAdmission: station.passengerAdmission || false,
             disabledAccessibility: station.disabledAccessibility || false,
-            phones: station.phones,
-            workingDays: station.workingDays,
-            hardwares: station.hardwares,
-            physicalProperties: station.physicalProperties,
-            stationPlatforms: station.stationPlatforms,
-            salesChannels: station.salesChannels,
+            phones: station.phones || null,
+            workingDays: station.workingDays || null,
+            hardwares: station.hardwares || null,
+            physicalProperties: station.physicalProperties || null,
+            stationPlatforms: station.stationPlatforms || null,
+            salesChannels: station.salesChannels || [],
             IATACode: station.IATACode
           }));
       } else {
@@ -703,7 +443,7 @@ class TCDDApiService {
   }
 
   // Fetch station pairs (which routes are available)
-  static async fetchStationPairs(): Promise<TCDDStationPair[]> {
+  static async fetchStationPairs(): Promise<StationPair[]> {
     try {
       if (cachedStationPairs) {
         return cachedStationPairs;
@@ -761,8 +501,8 @@ class TCDDApiService {
             international: station.international || false,
             domestic: station.domestic || false,
             pairs: station.pairs || [],
-            salesChannels: station.salesChannels,
-            stationTrainTypes: station.stationTrainTypes,
+            salesChannels: station.salesChannels || null,
+            stationTrainTypes: station.stationTrainTypes || [],
             IATACode: station.IATACode
           }));
       } else {
@@ -902,8 +642,16 @@ class TCDDApiService {
         throw new Error(`HTTP ${response.status}: ${response.statusText}`);
       }
 
-      const data: TCDDSearchResponse = await response.json();
+      const data: TCDDTrainAvailabilityResponse = await response.json();
       console.log('TCDD API Response:', JSON.stringify(data, null, 2));
+      
+      // Debug: Log the number of trains found in the response
+      const totalTrains = data.trainLegs?.reduce((count, leg) => {
+        return count + (leg.trainAvailabilities?.reduce((trainCount, avail) => {
+          return trainCount + (avail.trains?.length || 0);
+        }, 0) || 0);
+      }, 0) || 0;
+      console.log(`Raw API response contains ${totalTrains} trains`);
       
       return {
         success: true,
@@ -921,7 +669,7 @@ class TCDDApiService {
     }
   }
 
-  private static transformApiResponse(apiData: TCDDSearchResponse): any[] {
+  private static transformApiResponse(apiData: TCDDTrainAvailabilityResponse): any[] {
     // Handle the real TCDD API response structure
     if (!apiData || !apiData.trainLegs || !Array.isArray(apiData.trainLegs)) {
       console.warn('No train legs found in API response');
@@ -929,6 +677,10 @@ class TCDDApiService {
     }
     
     const trains: any[] = [];
+    let totalProcessed = 0;
+    let totalFiltered = 0;
+    
+    console.log(`🔍 Processing ${apiData.trainLegs.length} train legs from API response`);
     
     for (const trainLeg of apiData.trainLegs) {
       if (!trainLeg.trainAvailabilities || !Array.isArray(trainLeg.trainAvailabilities)) {
@@ -941,6 +693,9 @@ class TCDDApiService {
         }
         
         for (const train of availability.trains) {
+          totalProcessed++;
+          console.log(`📋 Processing train ${train.number || 'Unknown'} (${totalProcessed})`);
+          
           // Calculate total journey time from segments
           let totalDuration = 0;
           let totalDistance = 0;
@@ -986,20 +741,33 @@ class TCDDApiService {
           // Get available seats and pricing from the most accurate sources
           let availableSeats = 0;
           let bestPrice = 0;
+          const seatCategories: any[] = [];
           
-          // Try to get best pricing from trainLeg.availableFareInfo (most accurate pricing)
-          if (trainLeg.availableFareInfo && trainLeg.availableFareInfo.length > 0) {
+          // Try to get best pricing from train.availableFareInfo (most accurate pricing)
+          if (train.availableFareInfo && train.availableFareInfo.length > 0) {
             // Find minimum price across all fare classes
             const allPrices: number[] = [];
             
-            for (const fareInfo of trainLeg.availableFareInfo) {
+            for (const fareInfo of train.availableFareInfo) {
               if (fareInfo.cabinClasses && fareInfo.cabinClasses.length > 0) {
                 for (const cabinClass of fareInfo.cabinClasses) {
                   if (cabinClass.minPrice && cabinClass.minPrice > 0) {
                     allPrices.push(cabinClass.minPrice);
                   }
-                  // Also get availability count
+                  // Also get availability count (ACTUAL available seats)
                   availableSeats += cabinClass.availabilityCount || 0;
+                  
+                  // Extract seat category information
+                  if (cabinClass.availabilityCount > 0) {
+                    seatCategories.push({
+                      categoryId: cabinClass.cabinClass.id,
+                      categoryName: cabinClass.cabinClass.name || 'Unknown',
+                      categoryCode: cabinClass.cabinClass.code || 'UNK',
+                      availableSeats: cabinClass.availabilityCount || 0,
+                      price: cabinClass.minPrice || 0,
+                      currency: cabinClass.minPriceCurrency || 'TRY'
+                    });
+                  }
                 }
               }
             }
@@ -1014,33 +782,94 @@ class TCDDApiService {
             bestPrice = train.minPrice.priceAmount;
           }
           
-          // If still no available seats from fare info, try other sources
+          // If still no available seats from fare info, try other sources (prioritize availability over capacity)
           if (availableSeats === 0) {
-            // Try to get seats from availability.cars (most accurate for available seats)
-            if (availability.cars && availability.cars.length > 0) {
-              for (const car of availability.cars) {
+            // Try to get seats from train.cars (available seats per car)
+            if (train.cars && train.cars.length > 0) {
+              for (const car of train.cars) {
                 if (car.availabilities && car.availabilities.length > 0) {
                   for (const carAvail of car.availabilities) {
                     availableSeats += carAvail.availability || 0;
+                    
+                    // Extract seat categories from car availabilities if not already collected
+                    if (seatCategories.length === 0 && carAvail.availability > 0) {
+                      seatCategories.push({
+                        categoryId: carAvail.cabinClass.id,
+                        categoryName: carAvail.cabinClass.name || 'Unknown',
+                        categoryCode: carAvail.cabinClass.code || 'UNK',
+                        availableSeats: carAvail.availability || 0,
+                        price: carAvail.pricingList?.[0]?.basePrice?.priceAmount || 0,
+                        currency: carAvail.pricingList?.[0]?.basePrice?.priceCurrency || 'TRY'
+                      });
+                    }
                   }
                 }
               }
             }
-            // Fallback to trainLeg's cabinClassAvailabilities (available seats per cabin class)
-            else if (trainLeg.cabinClassAvailabilities && trainLeg.cabinClassAvailabilities.length > 0) {
-              availableSeats = trainLeg.cabinClassAvailabilities.reduce((sum, cabinAvail) => sum + cabinAvail.availabilityCount, 0);
-            } 
-            // Last fallback to train's bookingClassCapacities (total capacity, not available)
+            // Fallback to train's cabinClassAvailabilities (available seats per cabin class)
+            else if (train.cabinClassAvailabilities && train.cabinClassAvailabilities.length > 0) {
+              train.cabinClassAvailabilities.forEach(cabinAvail => {
+                availableSeats += cabinAvail.availabilityCount;
+                
+                // Extract seat categories from cabin class availabilities if not already collected
+                if (seatCategories.length === 0 && cabinAvail.availabilityCount > 0) {
+                  seatCategories.push({
+                    categoryId: cabinAvail.cabinClass.id,
+                    categoryName: cabinAvail.cabinClass.name || 'Unknown',
+                    categoryCode: cabinAvail.cabinClass.code || 'UNK',
+                    availableSeats: cabinAvail.availabilityCount || 0,
+                    price: bestPrice, // Use the best price found
+                    currency: train.minPrice?.priceCurrency || 'TRY'
+                  });
+                }
+              });
+            }
+            // AVOID using bookingClassCapacities as it shows total capacity, not available seats
+            // Only use it if absolutely no other data is available and mark it clearly
             else if (train.bookingClassCapacities && train.bookingClassCapacities.length > 0) {
-              // Note: This is capacity, not availability - might not be accurate for actual available seats
-              availableSeats = train.bookingClassCapacities.reduce((sum, capacity) => sum + capacity.capacity, 0);
+              console.warn(`Using total capacity for train ${train.number} - actual availability unknown`);
+              // Don't use capacity data as it's misleading - better to show 0 or unknown
+              availableSeats = 0; // Changed from showing capacity to showing 0
             }
           }
           
-          // Skip trains with no available seats or no price
-          if (availableSeats === 0 && bestPrice === 0) {
-            console.warn(`Skipping train ${train.number} - no seats or price available`);
+          // Filter out trains with no available seats or no price information
+          // Skip trains that have neither available seats nor price (completely unavailable)
+          // TEMPORARY: Be more lenient with filtering to debug the issue
+          if (availableSeats === 0 && bestPrice === 0 && !train.name && !train.number) {
+            totalFiltered++;
+            console.warn(`❌ Skipping train - completely empty record`);
             continue;
+          }
+          
+          // Show trains that have price but zero available seats (sold out) if user wants to see them
+          // This allows users to see the full schedule even if seats are sold out
+          if (availableSeats === 0 && bestPrice > 0 && !TCDDApiService.showSoldOutTrains) {
+            totalFiltered++;
+            console.warn(`❌ Skipping train ${train.number} - sold out (0 available seats). Enable 'Show Sold Out Trains' to see it.`);
+            continue;
+          }
+          
+          // Create preliminary train data for economy seat checking
+          const preliminaryTrainData = { seatCategories, availableSeats, trainNumber: train.number };
+          
+          // Additional filtering for economy seats in connected searches
+          const economySeats = TCDDApiService.getEconomySeats(preliminaryTrainData);
+          if (economySeats === 0 && !TCDDApiService.showSoldOutTrains) {
+            totalFiltered++;
+            console.warn(`❌ Skipping train ${train.number} - no economy seats available. Enable 'Show Sold Out Trains' to see it.`);
+            continue;
+          }
+          
+          // DEBUG: Log every train that passes filtering
+          console.log(`✅ Including train ${train.number || 'Unknown'}: ${availableSeats} seats (${economySeats} economy), ${bestPrice} TRY, departing ${departureTime}`);
+          if (seatCategories.length > 0) {
+            console.log(`🪑 Seat categories for ${train.number}:`, seatCategories.map(cat => `${cat.categoryName}(${cat.categoryCode}): ${cat.availableSeats} seats @ ${cat.price}${cat.currency}`).join(', '));
+          }
+          if (train.trainSegments && train.trainSegments.length > 0) {
+            console.log(`🛤️ Train ${train.number} has ${train.trainSegments.length} trainSegments:`, train.trainSegments.map(ts => `${ts.departureStationId} → ${ts.arrivalStationId}`).join(', '));
+          } else {
+            console.log(`⚠️ Train ${train.number} has no trainSegments in raw data`);
           }
           
           const trainData = {
@@ -1055,6 +884,7 @@ class TCDDApiService {
             price: bestPrice,
             currency: train.minPrice?.priceCurrency || 'TRY',
             availableSeats,
+            seatCategories, // Include detailed seat categories
             reservable: train.reservable || false,
             segments: train.segments?.map(segment => {
               const segmentDepartureDate = new Date(segment.departureTime);
@@ -1075,7 +905,8 @@ class TCDDApiService {
                 distance: segment.distance,
                 stops: segment.stops
               };
-            }) || []
+            }) || [],
+            trainSegments: train.trainSegments || [] // Preserve the trainSegments data for intermediate stations
           };
           
           console.log(`Train ${trainData.trainNumber}: ${trainData.availableSeats} seats, ${trainData.price} TRY`);
@@ -1087,11 +918,11 @@ class TCDDApiService {
     // Sort trains by departure time
     trains.sort((a, b) => a.departureTimestamp - b.departureTimestamp);
 
-    console.log(`Transformed ${trains.length} trains from API response`);
+    console.log(`📊 SUMMARY: Processed ${totalProcessed} trains, filtered out ${totalFiltered}, returning ${trains.length} trains`);
     return trains;
   }
 
-  static async findStationByName(name: string): Promise<TCDDStation | undefined> {
+  static async findStationByName(name: string): Promise<Station | undefined> {
     try {
       const stations = await this.fetchStations();
       const normalizedName = name.toLowerCase().trim();
@@ -1110,7 +941,7 @@ class TCDDApiService {
     }
   }
 
-  static async findStationsByQuery(query: string): Promise<TCDDStation[]> {
+  static async findStationsByQuery(query: string): Promise<Station[]> {
     if (!query.trim()) return [];
     
     try {
@@ -1131,8 +962,225 @@ class TCDDApiService {
     }
   }
 
+  // Find same-train connections (A to C via B on the same train, just changing seats/tickets)
+  static async findSameTrainConnections(
+    fromStationId: number,
+    toStationId: number,
+    departureDate: string = new Date().toISOString().split('T')[0],
+    options?: {
+      signal?: AbortSignal;
+      onIntermediateStation?: (stationId: number, stationName: string) => void; // progress
+      onConnectionFound?: (route: any) => void; // emit route incrementally
+    }
+  ): Promise<any[]> {
+    if (!this.enableSameTrainConnections) {
+      return [];
+    }
+
+    const originName = await this.getStationName(fromStationId);
+    const destinationName = await this.getStationName(toStationId);
+    console.log(`🚂 Searching for same-train connections from ${originName} (${fromStationId}) to ${destinationName} (${toStationId}) using trainSegments`);
+    
+    try {
+      // First, get all direct trains from origin to find trains that pass through intermediate stations
+      const directResponse = await this.searchTrainAvailability(
+        fromStationId,
+        toStationId,
+        departureDate
+      );
+
+      if (!directResponse.success || directResponse.data.length === 0) {
+        console.log(`❌ No direct trains found from ${fromStationId} to ${toStationId}`);
+        return [];
+      }
+
+      const sameTrainRoutes: any[] = [];
+
+      // 1. Filter direct trains to those with economy seats and segment data
+      const directTrains = directResponse.data.filter(t => {
+        const ok = !!t.trainSegments && t.trainSegments.length > 0 && this.getEconomySeats(t) > 0;
+        if (!ok) {
+          if (!t.trainSegments || t.trainSegments.length === 0) {
+            console.log(`⚠️ Train ${t.trainNumber} has no trainSegments data`);
+          } else {
+            console.log(`⚠️ Skipping train ${t.trainNumber} - no economy seats available`);
+          }
+        }
+        return ok;
+      });
+
+      if (directTrains.length === 0) {
+        console.log('❌ No eligible direct trains with segment data and economy seats');
+        return [];
+      }
+
+      // 2. Build a map of intermediateStationId -> Set(trainNumber) for all direct trains
+      const stationToTrains = new Map<number, Set<string>>();
+      for (const train of directTrains) {
+        if (options?.signal?.aborted) break;
+        const allStationIds = new Set<number>();
+        for (const segment of train.trainSegments) {
+          allStationIds.add(segment.departureStationId);
+          allStationIds.add(segment.arrivalStationId);
+        }
+        allStationIds.delete(fromStationId);
+        allStationIds.delete(toStationId);
+        for (const stationId of allStationIds) {
+          if (!stationToTrains.has(stationId)) stationToTrains.set(stationId, new Set());
+          stationToTrains.get(stationId)!.add(train.trainNumber);
+        }
+      }
+
+      const uniqueIntermediateStations = Array.from(stationToTrains.keys());
+      console.log(`🚉 Unique intermediate stations across all direct trains: ${uniqueIntermediateStations.join(', ')}`);
+      if (uniqueIntermediateStations.length === 0) {
+        console.log('⚠️ No intermediate stations found across direct trains');
+        return [];
+      }
+
+      // 3. Simple in-memory availability cache to avoid duplicate API calls (key: from-to-date)
+      const availabilityCache = new Map<string, any>();
+      const fetchAvailability = async (a: number, b: number) => {
+        const key = `${a}-${b}-${departureDate}`;
+        if (availabilityCache.has(key)) return availabilityCache.get(key);
+        const resp = await this.searchTrainAvailability(a, b, departureDate);
+        availabilityCache.set(key, resp);
+        return resp;
+      };
+
+      // 4. Process each intermediate station once
+      for (const intermediateStationId of uniqueIntermediateStations) {
+        if (options?.signal?.aborted) break;
+        const intermediateName = await this.getStationName(intermediateStationId);
+        // Emit progress once per station
+        options?.onIntermediateStation?.(intermediateStationId, intermediateName);
+        try {
+          // Perform the two leg availability searches (cached)
+            const [originToIntermediateResponse, intermediateToDestinationResponse] = await Promise.all([
+              fetchAvailability(fromStationId, intermediateStationId),
+              fetchAvailability(intermediateStationId, toStationId)
+            ]);
+
+          if (!originToIntermediateResponse.success || !intermediateToDestinationResponse.success) {
+            console.log(`⚠️ Availability search failed for station ${intermediateStationId}`);
+            continue;
+          }
+
+          const trainsPassingStation = stationToTrains.get(intermediateStationId)!; // set of trainNumbers
+
+          for (const trainNumber of trainsPassingStation) {
+            if (options?.signal?.aborted) break;
+            // Check that this train appears in both leg responses
+            const firstLegTrain = originToIntermediateResponse.data.find((t: any) => t.trainNumber === trainNumber);
+            const secondLegTrain = intermediateToDestinationResponse.data.find((t: any) => t.trainNumber === trainNumber);
+            if (!firstLegTrain || !secondLegTrain) {
+              continue; // train not bookable as two separate tickets
+            }
+
+            // Economy seats on both legs
+            const econFirst = this.getEconomySeats(firstLegTrain);
+            const econSecond = this.getEconomySeats(secondLegTrain);
+            if (econFirst === 0 || econSecond === 0) continue;
+
+            const sameTrainRoute = {
+              id: `same-train-${trainNumber}-${intermediateStationId}`,
+              trainNumber: trainNumber,
+              connectionType: 'same-train',
+              intermediateStation: intermediateStationId,
+              firstLeg: {
+                trainNumber: trainNumber,
+                trainName: firstLegTrain.trainName,
+                fromStation: fromStationId,
+                fromStationName: originName,
+                toStation: intermediateStationId,
+                toStationName: intermediateName,
+                departureTime: firstLegTrain.departureTime,
+                arrivalTime: firstLegTrain.arrivalTime,
+                duration: firstLegTrain.duration,
+                price: firstLegTrain.price,
+                availableSeats: firstLegTrain.availableSeats,
+                seatCategories: firstLegTrain.seatCategories || [],
+                economySeats: econFirst
+              },
+              secondLeg: {
+                trainNumber: trainNumber,
+                trainName: secondLegTrain.trainName,
+                fromStation: intermediateStationId,
+                fromStationName: intermediateName,
+                toStation: toStationId,
+                toStationName: destinationName,
+                departureTime: secondLegTrain.departureTime,
+                arrivalTime: secondLegTrain.arrivalTime,
+                duration: secondLegTrain.duration,
+                price: secondLegTrain.price,
+                availableSeats: secondLegTrain.availableSeats,
+                seatCategories: secondLegTrain.seatCategories || [],
+                economySeats: econSecond
+              },
+              totalDuration: (firstLegTrain.duration || 0) + (secondLegTrain.duration || 0),
+              totalPrice: (firstLegTrain.price || 0) + (secondLegTrain.price || 0),
+              totalEconomySeats: Math.min(econFirst, econSecond),
+              note: 'Aynı trende koltuk değiştirerek gidilebilir'
+            };
+
+            sameTrainRoutes.push(sameTrainRoute);
+            options?.onConnectionFound?.(sameTrainRoute);
+            console.log(`✅ Found same-train connection: ${trainNumber} via ${intermediateName} (${sameTrainRoute.totalEconomySeats} economy seats)`);
+          }
+        } catch (err) {
+          console.warn(`Error processing intermediate station ${intermediateStationId} (${intermediateName}):`, err);
+          continue;
+        }
+      }
+
+      console.log(`🎯 Found ${sameTrainRoutes.length} same-train connections using aggregated intermediate stations`);
+      return sameTrainRoutes;
+      
+    } catch (error) {
+      console.error('Error finding same-train connections:', error);
+      return [];
+    }
+  }
+
+  // Helper method to extract economy seat count from train data
+  static getEconomySeats(train: any): number {
+    // First try to get economy seats from seat categories
+    if (train.seatCategories && Array.isArray(train.seatCategories)) {
+      const economyCategories = train.seatCategories.filter((category: any) => 
+        category.categoryCode && (
+          category.categoryCode.toLowerCase().includes('eco') ||
+          category.categoryCode.toLowerCase().includes('ekonomi') ||
+          category.categoryName?.toLowerCase().includes('economy') ||
+          category.categoryName?.toLowerCase().includes('ekonomi')
+        )
+      );
+      
+      if (economyCategories.length > 0) {
+        const economySeats = economyCategories.reduce((sum: number, cat: any) => sum + (cat.availableSeats || 0), 0);
+        console.log(`🎫 Found ${economySeats} economy seats for train ${train.trainNumber} from categories`);
+        return economySeats;
+      }
+    }
+    
+    // Fallback to total available seats if no economy categories found
+    const totalSeats = train.availableSeats || 0;
+    console.log(`⚠️ No economy categories found for train ${train.trainNumber}, using total seats: ${totalSeats}`);
+    return totalSeats;
+  }
+
+  // Helper method to get station name from ID
+  static async getStationName(stationId: number): Promise<string> {
+    try {
+      const stations = await this.fetchStations();
+      const station = stations.find(s => s.id === stationId);
+      return station ? station.name : `Station ${stationId}`;
+    } catch (error) {
+      return `Station ${stationId}`;
+    }
+  }
+
   // Get all stations for dropdown/autocomplete
-  static async getAllStations(): Promise<TCDDStation[]> {
+  static async getAllStations(): Promise<Station[]> {
     try {
       return await this.fetchStations();
     } catch (error) {

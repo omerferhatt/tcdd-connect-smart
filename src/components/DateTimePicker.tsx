@@ -3,7 +3,7 @@ import { Calendar } from '@/components/ui/calendar';
 import { Button } from '@/components/ui/button';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Label } from '@/components/ui/label';
-import { CalendarDays } from '@phosphor-icons/react';
+import { Calendar as CalendarIcon } from '@phosphor-icons/react';
 import { cn } from '@/lib/utils';
 
 interface DateTimePickerProps {
@@ -34,14 +34,12 @@ export function DateTimePicker({
     }).format(date);
   };
 
-  const handleDateSelect = (selectedDate: Date | undefined) => {
-    if (selectedDate) {
-      // Create a new date object to avoid mutation and set to noon
-      const newDate = new Date(selectedDate);
-      newDate.setHours(12, 0, 0, 0);
-      onChange(newDate);
-      setIsOpen(false);
-    }
+  const handleDateSelect = (selectedDate: Date) => {
+    // Create a new date object to avoid mutation and set to noon
+    const newDate = new Date(selectedDate);
+    newDate.setHours(12, 0, 0, 0);
+    onChange(newDate);
+    setIsOpen(false);
   };
 
   // Force today as minimum date
@@ -66,7 +64,7 @@ export function DateTimePicker({
               !value && "text-muted-foreground"
             )}
           >
-            <CalendarDays size={16} className="mr-2" />
+            <CalendarIcon size={16} className="mr-2" />
             {formatDate(value)}
           </Button>
         </PopoverTrigger>
@@ -91,11 +89,7 @@ export function DateTimePicker({
               
               return false;
             }}
-            initialFocus
-            fixedWeeks={true}
-            showOutsideDays={true}
             className="rounded-md border"
-            weekStartsOn={1}
           />
         </PopoverContent>
       </Popover>

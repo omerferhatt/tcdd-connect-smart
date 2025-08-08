@@ -5,7 +5,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Switch } from '@/components/ui/switch';
-import { Settings, Key, AlertCircle, Database } from '@phosphor-icons/react';
+import { Gear, Key, WarningCircle, Database } from '@phosphor-icons/react';
 import TCDDApiService from '@/lib/tcdd-api';
 import { toast } from 'sonner';
 
@@ -13,9 +13,13 @@ interface ApiSettingsDialogProps {
   onAuthSuccess?: () => void;
   useRealAPI: boolean;
   onToggleAPI: (enabled: boolean) => void;
+  showSoldOutTrains: boolean;
+  onToggleSoldOutTrains: (show: boolean) => void;
+  enableSameTrainConnections: boolean;
+  onToggleSameTrainConnections: (enabled: boolean) => void;
 }
 
-export function ApiSettingsDialog({ onAuthSuccess, useRealAPI, onToggleAPI }: ApiSettingsDialogProps) {
+export function ApiSettingsDialog({ onAuthSuccess, useRealAPI, onToggleAPI, showSoldOutTrains, onToggleSoldOutTrains, enableSameTrainConnections, onToggleSameTrainConnections }: ApiSettingsDialogProps) {
   const [open, setOpen] = useState(false);
   const [authToken, setAuthToken] = useState('');
   const [loading, setLoading] = useState(false);
@@ -45,7 +49,7 @@ export function ApiSettingsDialog({ onAuthSuccess, useRealAPI, onToggleAPI }: Ap
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>
         <Button variant="outline" size="sm" className="gap-2">
-          <Settings size={16} />
+          <Gear size={16} />
           API Ayarları
         </Button>
       </DialogTrigger>
@@ -59,6 +63,40 @@ export function ApiSettingsDialog({ onAuthSuccess, useRealAPI, onToggleAPI }: Ap
         </DialogHeader>
         
         <div className="space-y-4">
+          {/* Train Filtering Options */}
+          <div className="space-y-3">
+            <div className="flex items-center justify-between">
+              <Label htmlFor="show-sold-out" className="text-sm font-medium">
+                Tükenen Seferler
+              </Label>
+              <Switch
+                id="show-sold-out"
+                checked={showSoldOutTrains}
+                onCheckedChange={onToggleSoldOutTrains}
+              />
+            </div>
+            <div className="text-sm text-muted-foreground">
+              {showSoldOutTrains ? 'Yer kalmayan seferler gösteriliyor' : 'Yer kalmayan seferler gizleniyor'}
+            </div>
+          </div>
+
+          {/* Same Train Connections Toggle */}
+          <div className="space-y-3">
+            <div className="flex items-center justify-between">
+              <Label htmlFor="same-train-connections" className="text-sm font-medium">
+                Aynı Tren Aktarmaları
+              </Label>
+              <Switch
+                id="same-train-connections"
+                checked={enableSameTrainConnections}
+                onCheckedChange={onToggleSameTrainConnections}
+              />
+            </div>
+            <div className="text-sm text-muted-foreground">
+              {enableSameTrainConnections ? 'Aynı trende koltuk değiştirerek gidebileceğiniz rotalar gösteriliyor' : 'Sadece trenden inmeden gidebileceğiniz rotalar gösteriliyor'}
+            </div>
+          </div>
+
           {/* API Mode Toggle */}
           <div className="space-y-3">
             <div className="flex items-center justify-between">
@@ -82,7 +120,7 @@ export function ApiSettingsDialog({ onAuthSuccess, useRealAPI, onToggleAPI }: Ap
           {useRealAPI ? (
             <>
               <Alert>
-                <AlertCircle size={16} />
+                <WarningCircle size={16} />
                 <AlertDescription className="text-sm">
                   Gerçek TCDD API'sini kullanmak için geçerli bir JWT token'ına ihtiyacınız var.
                   Bu token'ı TCDD'nin resmi web sitesinden edinebilirsiniz.

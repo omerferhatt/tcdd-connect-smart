@@ -1,68 +1,152 @@
-@import 'tailwindcss';
-@import "tw-animate-css";
+@import 'tailwindcss/base';
+@import 'tailwindcss/components';
+@import 'tailwindcss/utilities';
 
 @layer base {
   * {
-    @apply border-border;
+    border-color: hsl(var(--border));
   }
   
   body {
     font-family: 'Inter', sans-serif;
+    background-color: hsl(var(--background));
+    color: hsl(var(--foreground));
+  }
+  
+  /* Ensure all UI components have proper backgrounds */
+  [data-slot="card"] {
+    background-color: white !important;
+    border: 1px solid #e5e7eb !important;
+  }
+  
+  .dark [data-slot="card"] {
+    background-color: #1f2937 !important;
+    border: 1px solid #374151 !important;
+  }
+  
+  [data-slot="popover-content"] {
+    background-color: white !important;
+    border: 1px solid #e5e7eb !important;
+  }
+  
+  .dark [data-slot="popover-content"] {
+    background-color: #1f2937 !important;
+    border: 1px solid #374151 !important;
+  }
+  
+  [data-slot="dialog-content"] {
+    background-color: white !important;
+    border: 1px solid #e5e7eb !important;
+  }
+  
+  .dark [data-slot="dialog-content"] {
+    background-color: #111827 !important;
+    border: 1px solid #374151 !important;
+  }
+  
+  [data-slot="select-content"] {
+    background-color: white !important;
+    border: 1px solid #e5e7eb !important;
+  }
+  
+  .dark [data-slot="select-content"] {
+    background-color: #1f2937 !important;
+    border: 1px solid #374151 !important;
+  }
+  
+  [data-slot="command"] {
+    background-color: white !important;
+    border: 1px solid #e5e7eb !important;
+  }
+  
+  .dark [data-slot="command"] {
+    background-color: #1f2937 !important;
+    border: 1px solid #374151 !important;
+  }
+  
+  /* Station search dropdown */
+  .absolute.z-50.w-full.mt-1 {
+    background-color: white !important;
+    border: 1px solid #e5e7eb !important;
+  }
+  
+  .dark .absolute.z-50.w-full.mt-1 {
+    background-color: #1f2937 !important;
+    border: 1px solid #374151 !important;
+  }
+  
+  /* All Radix UI content */
+  [data-radix-select-content],
+  [data-radix-popover-content],
+  [data-radix-dialog-content],
+  [data-radix-dropdown-menu-content],
+  [data-radix-context-menu-content],
+  [data-radix-menubar-content],
+  [data-radix-tooltip-content] {
+    background-color: white !important;
+    border: 1px solid #e5e7eb !important;
+  }
+  
+  .dark [data-radix-select-content],
+  .dark [data-radix-popover-content],
+  .dark [data-radix-dialog-content],
+  .dark [data-radix-dropdown-menu-content],
+  .dark [data-radix-context-menu-content],
+  .dark [data-radix-menubar-content],
+  .dark [data-radix-tooltip-content] {
+    background-color: #1f2937 !important;
+    border: 1px solid #374151 !important;
   }
 }
 
 :root {
-  --background: oklch(1 0 0);
-  --foreground: oklch(0.2 0 0);
+  --background: 0 0% 100%;
+  --foreground: 240 10% 3.9%;
   
-  --card: oklch(0.98 0 0);
-  --card-foreground: oklch(0.2 0 0);
-  --popover: oklch(1 0 0);
-  --popover-foreground: oklch(0.2 0 0);
+  --card: 0 0% 100%;
+  --card-foreground: 240 10% 3.9%;
+  --popover: 0 0% 100%;
+  --popover-foreground: 240 10% 3.9%;
   
-  --primary: oklch(0.55 0.15 25);
-  --primary-foreground: oklch(1 0 0);
-  --secondary: oklch(0.45 0.08 240);
-  --secondary-foreground: oklch(1 0 0);
-  --accent: oklch(0.80 0.15 85);
-  --accent-foreground: oklch(0.2 0 0);
-  --destructive: oklch(0.577 0.245 27.325);
-  --destructive-foreground: oklch(1 0 0);
+  --primary: 240 5.9% 10%;
+  --primary-foreground: 0 0% 98%;
+  --secondary: 240 4.8% 95.9%;
+  --secondary-foreground: 240 5.9% 10%;
+  --accent: 240 4.8% 95.9%;
+  --accent-foreground: 240 5.9% 10%;
+  --destructive: 0 84.2% 60.2%;
+  --destructive-foreground: 0 0% 98%;
   
-  --muted: oklch(0.96 0 0);
-  --muted-foreground: oklch(0.45 0 0);
-  --border: oklch(0.92 0 0);
-  --input: oklch(0.92 0 0);
-  --ring: oklch(0.55 0.15 25);
+  --muted: 240 4.8% 95.9%;
+  --muted-foreground: 240 3.8% 46.1%;
+  --border: 240 5.9% 90%;
+  --input: 240 5.9% 90%;
+  --ring: 240 5.9% 10%;
   
   --radius: 0.5rem;
 }
 
-@theme {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --color-card: var(--card);
-  --color-card-foreground: var(--card-foreground);
-  --color-popover: var(--popover);
-  --color-popover-foreground: var(--popover-foreground);
-  --color-primary: var(--primary);
-  --color-primary-foreground: var(--primary-foreground);
-  --color-secondary: var(--secondary);
-  --color-secondary-foreground: var(--secondary-foreground);
-  --color-muted: var(--muted);
-  --color-muted-foreground: var(--muted-foreground);
-  --color-accent: var(--accent);
-  --color-accent-foreground: var(--accent-foreground);
-  --color-destructive: var(--destructive);
-  --color-destructive-foreground: var(--destructive-foreground);
-  --color-border: var(--border);
-  --color-input: var(--input);
-  --color-ring: var(--ring);
-
-  --radius-sm: calc(var(--radius) * 0.5);
-  --radius-md: var(--radius);
-  --radius-lg: calc(var(--radius) * 1.5);
-  --radius-xl: calc(var(--radius) * 2);
-  --radius-2xl: calc(var(--radius) * 3);
-  --radius-full: 9999px;
+.dark {
+  --background: 240 10% 3.9%;
+  --foreground: 0 0% 98%;
+  
+  --card: 240 10% 3.9%;
+  --card-foreground: 0 0% 98%;
+  --popover: 240 10% 3.9%;
+  --popover-foreground: 0 0% 98%;
+  
+  --primary: 0 0% 98%;
+  --primary-foreground: 240 5.9% 10%;
+  --secondary: 240 3.7% 15.9%;
+  --secondary-foreground: 0 0% 98%;
+  --accent: 240 3.7% 15.9%;
+  --accent-foreground: 0 0% 98%;
+  --destructive: 0 62.8% 30.6%;
+  --destructive-foreground: 0 0% 98%;
+  
+  --muted: 240 3.7% 15.9%;
+  --muted-foreground: 240 5% 64.9%;
+  --border: 240 3.7% 15.9%;
+  --input: 240 3.7% 15.9%;
+  --ring: 240 4.9% 83.9%;
 }

@@ -1,4 +1,4 @@
-import TCDDApiService, { TCDDTrainAvailability } from './tcdd-api';
+import TCDDApiService from './tcdd-api';
 import { routeGraph, ConnectedRoute } from './route-finder';
 
 export interface Station {
@@ -9,6 +9,15 @@ export interface Station {
   tcddId?: number; // TCDD API station ID
 }
 
+export interface SeatCategory {
+  categoryId: number;
+  categoryName: string;
+  categoryCode: string;
+  availableSeats: number;
+  price: number;
+  currency: string;
+}
+
 export interface RouteSegment {
   id: string;
   from: Station;
@@ -17,8 +26,9 @@ export interface RouteSegment {
   arrival: string;
   duration: number; // minutes
   trainNumber: string;
-  price: number; // TL
-  availableSeats?: number; // Add available seats info
+  price: number; // TL - minimum price
+  availableSeats?: number; // Total available seats (for backward compatibility)
+  seatCategories?: SeatCategory[]; // Detailed seat categories
   departureTimestamp?: number; // For accurate sorting
 }
 
@@ -265,6 +275,7 @@ export async function searchTrainsWithAPI(fromStation: Station, toStation: Stati
       );
       
       if (connectedRoutes.length > 0) {
+        console.log(`🚂 Route graph returned ${connectedRoutes.length} connected routes`);
         // Convert ConnectedRoute to Journey format
         connectedRoutes.forEach((route: ConnectedRoute, index: number) => {
           const segments: RouteSegment[] = route.segments.map((segment, segIndex) => ({
@@ -289,6 +300,7 @@ export async function searchTrainsWithAPI(fromStation: Station, toStation: Stati
             trainNumber: segment.trains.length > 0 ? segment.trains[0].trainNumber || 'Unknown' : 'Unknown',
             price: segment.trains.length > 0 ? segment.trains[0].price || 0 : 0,
             availableSeats: segment.trains.length > 0 ? segment.trains[0].availableSeats || 0 : 0,
+            seatCategories: segment.trains.length > 0 ? segment.trains[0].seatCategories || [] : [],
             departureTimestamp: segment.trains.length > 0 ? segment.trains[0].departureTimestamp || 0 : 0
           }));
           
@@ -326,6 +338,7 @@ export async function searchTrainsWithAPI(fromStation: Station, toStation: Stati
               trainNumber: train.trainNumber || train.trainName || 'Unknown',
               price: train.price || 0,
               availableSeats: train.availableSeats || 0,
+              seatCategories: train.seatCategories || [],
               departureTimestamp: train.departureTimestamp || 0
             };
             
@@ -359,7 +372,207 @@ export async function searchTrainsWithAPI(fromStation: Station, toStation: Stati
     const aTime = a.segments[0].departureTimestamp || parseTimeToMinutes(a.segments[0].departure);
     const bTime = b.segments[0].departureTimestamp || parseTimeToMinutes(b.segments[0].departure);
     return aTime - bTime;
-  }).slice(0, 15); // Increase limit to show more connected options
+  }); // Remove limit to show all available options
+}
+
+// NEW: Find connected alternatives for a specific departure time
+export async function findConnectedAlternatives(
+  fromStation: Station,
+  toStation: Station,
+  departureDate: Date,
+  targetDepartureTime: string
+): Promise<Journey[]> {
+  const journeys: Journey[] = [];
+
+  // Check if stations have TCDD IDs
+  if (!fromStation.tcddId || !toStation.tcddId) {
+    console.warn('Stations missing TCDD IDs for connected alternatives search');
+    return journeys;
+  }
+
+  try {
+    console.log(`🔍 Finding connected alternatives for ${targetDepartureTime} departure`);
+    
+    // Use route graph to find connected alternatives
+    const connectedRoutes = await routeGraph.findConnectedAlternatives(
+      fromStation.tcddId,
+      toStation.tcddId,
+      departureDate,
+      targetDepartureTime
+    );
+    
+    if (connectedRoutes.length > 0) {
+      console.log(`🚂 Found ${connectedRoutes.length} connected alternatives`);
+      // Convert ConnectedRoute to Journey format
+      connectedRoutes.forEach((route: ConnectedRoute, index: number) => {
+        const segments: RouteSegment[] = route.segments.map((segment, segIndex) => ({
+          id: `alt-${index}-segment-${segIndex}`,
+          from: {
+            id: `tcdd-${segment.fromStationId}`,
+            name: segment.fromStationName,
+            city: segment.fromStationName,
+            region: 'Unknown',
+            tcddId: segment.fromStationId
+          },
+          to: {
+            id: `tcdd-${segment.toStationId}`,
+            name: segment.toStationName,
+            city: segment.toStationName,
+            region: 'Unknown',
+            tcddId: segment.toStationId
+          },
+          departure: segment.trains.length > 0 ? segment.trains[0].departureTime || '00:00' : '00:00',
+          arrival: segment.trains.length > 0 ? segment.trains[0].arrivalTime || '00:00' : '00:00',
+          duration: segment.trains.length > 0 ? segment.trains[0].duration || 0 : 0,
+          trainNumber: segment.trains.length > 0 ? segment.trains[0].trainNumber || 'Unknown' : 'Unknown',
+          price: segment.trains.length > 0 ? segment.trains[0].price || 0 : 0,
+          availableSeats: segment.trains.length > 0 ? segment.trains[0].availableSeats || 0 : 0,
+          seatCategories: segment.trains.length > 0 ? segment.trains[0].seatCategories || [] : [],
+          departureTimestamp: segment.trains.length > 0 ? segment.trains[0].departureTimestamp || 0 : 0
+        }));
+        
+        journeys.push({
+          id: `connected-alt-${index}`,
+          segments,
+          totalDuration: route.totalDuration,
+          totalPrice: route.totalPrice,
+          connectionCount: route.connectionCount
+        });
+      });
+    }
+    
+  } catch (error) {
+    console.error('Error in findConnectedAlternatives:', error);
+  }
+
+  return journeys;
+}
+
+// Streaming version: yields partial journeys as they are discovered
+export async function* streamConnectedAlternatives(
+  fromStation: Station,
+  toStation: Station,
+  departureDate: Date,
+  targetDepartureTime: string,
+  options?: { signal?: AbortSignal; onProgress?: (stationName: string) => void }
+): AsyncGenerator<{ journey?: Journey; station?: string; done?: boolean }, void, unknown> {
+  if (!fromStation.tcddId || !toStation.tcddId) {
+    return;
+  }
+  try {
+    const dateStr = departureDate.toISOString().split('T')[0];
+    let index = 0;
+    type Event = { journey?: Journey; station?: string };
+    const queue: Event[] = [];
+    let finished = false;
+    const pushStation = (name: string) => {
+      queue.push({ station: name });
+      options?.onProgress?.(name);
+    };
+    const pushJourney = (j: Journey) => queue.push({ journey: j });
+
+    // Fire API search but don't await until we drained queue later
+    const apiPromise = TCDDApiService.findSameTrainConnections(
+      fromStation.tcddId,
+      toStation.tcddId,
+      dateStr,
+      {
+        signal: options?.signal,
+        onIntermediateStation: (_id, stationName) => {
+          if (options?.signal?.aborted) return;
+          pushStation(stationName);
+        },
+        onConnectionFound: (route) => {
+          if (options?.signal?.aborted) return;
+          const dep = route.firstLeg?.departureTime;
+          if (!dep) return;
+          if (dep.slice(0,5) !== targetDepartureTime.slice(0,5)) return;
+          const segments: RouteSegment[] = [
+            {
+              id: `stream-alt-${index}-segment-0`,
+              from: {
+                id: `tcdd-${route.firstLeg.fromStation}`,
+                name: route.firstLeg.fromStationName,
+                city: route.firstLeg.fromStationName,
+                region: 'Unknown',
+                tcddId: route.firstLeg.fromStation
+              },
+              to: {
+                id: `tcdd-${route.firstLeg.toStation}`,
+                name: route.firstLeg.toStationName,
+                city: route.firstLeg.toStationName,
+                region: 'Unknown',
+                tcddId: route.firstLeg.toStation
+              },
+              departure: route.firstLeg.departureTime,
+              arrival: route.firstLeg.arrivalTime,
+              duration: route.firstLeg.duration || 0,
+              trainNumber: route.firstLeg.trainNumber,
+              price: route.firstLeg.price || 0,
+              availableSeats: route.firstLeg.availableSeats || 0,
+              seatCategories: route.firstLeg.seatCategories || [],
+              departureTimestamp: 0
+            },
+            {
+              id: `stream-alt-${index}-segment-1`,
+              from: {
+                id: `tcdd-${route.secondLeg.fromStation}`,
+                name: route.secondLeg.fromStationName,
+                city: route.secondLeg.fromStationName,
+                region: 'Unknown',
+                tcddId: route.secondLeg.fromStation
+              },
+              to: {
+                id: `tcdd-${route.secondLeg.toStation}`,
+                name: route.secondLeg.toStationName,
+                city: route.secondLeg.toStationName,
+                region: 'Unknown',
+                tcddId: route.secondLeg.toStation
+              },
+              departure: route.secondLeg.departureTime,
+              arrival: route.secondLeg.arrivalTime,
+              duration: route.secondLeg.duration || 0,
+              trainNumber: route.secondLeg.trainNumber,
+              price: route.secondLeg.price || 0,
+              availableSeats: route.secondLeg.availableSeats || 0,
+              seatCategories: route.secondLeg.seatCategories || [],
+              departureTimestamp: 0
+            }
+          ];
+          const journey: Journey = {
+            id: `stream-connected-alt-${index}`,
+            segments,
+            totalDuration: route.totalDuration || (segments[0].duration + segments[1].duration),
+            totalPrice: route.totalPrice || (segments[0].price + segments[1].price),
+            connectionCount: 1
+          };
+          index++;
+          pushJourney(journey);
+        }
+      }
+    ).finally(() => { finished = true; });
+
+    // Drain queue as events arrive
+    while (!finished || queue.length > 0) {
+      if (options?.signal?.aborted) break;
+      const event = queue.shift();
+      if (event) {
+        if (event.station) {
+          yield { station: event.station };
+        } else if (event.journey) {
+          yield { journey: event.journey };
+        }
+      } else {
+        // nothing yet, wait a tick
+        await new Promise(r => setTimeout(r, 60));
+      }
+    }
+    await apiPromise; // ensure completion
+  } catch (e) {
+    // swallow errors in streaming to avoid breaking UI
+  } finally {
+    yield { done: true };
+  }
 }
 
 async function findConnectedRoutesWithAPI(
@@ -456,6 +669,7 @@ async function findConnectedRoutesWithAPI(
                 trainNumber: firstTrain.trainNumber || firstTrain.trainName || 'Unknown',
                 price: firstTrain.price || 0,
                 availableSeats: firstTrain.availableSeats || 0,
+                seatCategories: firstTrain.seatCategories || [],
                 departureTimestamp: firstTrain.departureTimestamp || 0
               };
               
@@ -469,6 +683,7 @@ async function findConnectedRoutesWithAPI(
                 trainNumber: secondTrain.trainNumber || secondTrain.trainName || 'Unknown',
                 price: secondTrain.price || 0,
                 availableSeats: secondTrain.availableSeats || 0,
+                seatCategories: secondTrain.seatCategories || [],
                 departureTimestamp: secondTrain.departureTimestamp || 0
               };
               

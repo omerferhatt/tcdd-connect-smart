@@ -1,7 +1,8 @@
 import React, { useState, useCallback } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
-import { StationSearch } from './StationSearch';
+import { DepartureStationSelector } from './DepartureStationSelector';
+import { ArrivalStationSelector } from './ArrivalStationSelector';
 import { DateTimePicker } from './DateTimePicker';
 import { Station } from '@/lib/railway-data';
 import { MagnifyingGlass, ArrowsLeftRight } from '@phosphor-icons/react';
@@ -9,9 +10,11 @@ import { MagnifyingGlass, ArrowsLeftRight } from '@phosphor-icons/react';
 interface SearchFormProps {
   onSearch: (from: Station, to: Station, departureDate: Date) => void;
   loading?: boolean;
+  hideDisabledOnlyTrains?: boolean;
+  onToggleHideDisabledOnly?: (value: boolean) => void;
 }
 
-export function SearchForm({ onSearch, loading }: SearchFormProps) {
+export function SearchForm({ onSearch, loading, hideDisabledOnlyTrains = false, onToggleHideDisabledOnly }: SearchFormProps) {
   const [fromStation, setFromStation] = useState<Station | null>(null);
   const [toStation, setToStation] = useState<Station | null>(null);
   
@@ -60,12 +63,11 @@ export function SearchForm({ onSearch, loading }: SearchFormProps) {
       <CardContent>
         <form onSubmit={handleSubmit} className="space-y-6">
           <div className="grid grid-cols-1 md:grid-cols-[1fr_auto_1fr] gap-4 items-end">
-            <StationSearch
-              label="Nereden"
-              placeholder="İstanbul, Ankara, İzmir..."
+            <DepartureStationSelector
               value={fromStation}
               onChange={setFromStation}
               disabled={loading}
+              excludeStation={toStation}
             />
             
             <Button
@@ -79,12 +81,11 @@ export function SearchForm({ onSearch, loading }: SearchFormProps) {
               <ArrowsLeftRight size={16} />
             </Button>
             
-            <StationSearch
-              label="Nereye"
-              placeholder="Hedef istasyonu seçin..."
+            <ArrivalStationSelector
               value={toStation}
               onChange={setToStation}
               disabled={loading}
+              excludeStation={fromStation}
             />
           </div>
 
@@ -105,7 +106,22 @@ export function SearchForm({ onSearch, loading }: SearchFormProps) {
             </div>
           )}
 
-          <Button
+          <div className="space-y-4">
+            <div className="flex items-center gap-2">
+              <input
+                id="hide-disabled-only"
+                type="checkbox"
+                className="h-4 w-4"
+                checked={hideDisabledOnlyTrains}
+                disabled={loading}
+                onChange={(e) => onToggleHideDisabledOnly?.(e.target.checked)}
+              />
+              <label htmlFor="hide-disabled-only" className="text-sm select-none">
+                Engelli koltukları gizle
+              </label>
+            </div>
+
+            <Button
             type="submit"
             disabled={!canSearch || loading}
             className="w-full text-lg py-6"
@@ -113,7 +129,7 @@ export function SearchForm({ onSearch, loading }: SearchFormProps) {
             {loading ? (
               <div className="flex items-center gap-2">
                 <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
-                Rotalar aranıyor...
+                Aranıyor...
               </div>
             ) : (
               <div className="flex items-center gap-2">
@@ -121,7 +137,8 @@ export function SearchForm({ onSearch, loading }: SearchFormProps) {
                 Seyahat Seçeneklerini Ara
               </div>
             )}
-          </Button>
+            </Button>
+          </div>
         </form>
       </CardContent>
     </Card>

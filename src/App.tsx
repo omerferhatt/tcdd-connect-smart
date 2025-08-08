@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { useKV } from '@github/spark/hooks';
+import { useKV } from './hooks/use-kv';
 import { SearchForm } from './components/SearchForm';
 import { SearchResults } from './components/SearchResults';
 import { ApiSettingsDialog } from './components/ApiSettingsDialog';
@@ -18,15 +18,22 @@ interface SearchHistory {
 
 function App() {
   const [journeys, setJourneys] = useState<Journey[]>([]);
-  const [currentSearch, setCurrentSearch] = useState<{ from: Station; to: Station } | null>(null);
+  const [currentSearch, setCurrentSearch] = useState<{ from: Station; to: Station; departureDate: Date } | null>(null);
   const [loading, setLoading] = useState(false);
   const [searchHistory, setSearchHistory] = useKV<SearchHistory[]>('search-history', []);
   const [useRealAPI, setUseRealAPI] = useKV<boolean>('use-real-api', true);
+  const [showSoldOutTrains, setShowSoldOutTrains] = useKV<boolean>('show-sold-out-trains', false);
+  const [enableSameTrainConnections, setEnableSameTrainConnections] = useKV<boolean>('enable-same-train-connections', true);
+  const [hideDisabledOnlyTrains, setHideDisabledOnlyTrains] = useKV<boolean>('hide-disabled-only-trains', false);
   const [apiStatus, setApiStatus] = useState<'unknown' | 'connected' | 'error'>('unknown');
 
   const handleSearch = async (fromStation: Station, toStation: Station, departureDate: Date) => {
     setLoading(true);
-    setCurrentSearch({ from: fromStation, to: toStation });
+    setCurrentSearch({ from: fromStation, to: toStation, departureDate });
+    
+    // Update TCDD API service settings
+    TCDDApiService.showSoldOutTrains = showSoldOutTrains;
+    TCDDApiService.enableSameTrainConnections = enableSameTrainConnections;
     
     try {
       // Simulate API delay for better UX
@@ -148,6 +155,10 @@ function App() {
                   }}
                   useRealAPI={useRealAPI}
                   onToggleAPI={setUseRealAPI}
+                  showSoldOutTrains={showSoldOutTrains}
+                  onToggleSoldOutTrains={setShowSoldOutTrains}
+                  enableSameTrainConnections={enableSameTrainConnections}
+                  onToggleSameTrainConnections={setEnableSameTrainConnections}
                 />
                 
                 <ApiDebugDialog 
@@ -171,7 +182,12 @@ function App() {
       <main className="container mx-auto px-4 py-8">
         <div className="space-y-8">
           {/* Search form */}
-          <SearchForm onSearch={handleSearch} loading={loading} />
+          <SearchForm 
+            onSearch={handleSearch} 
+            loading={loading} 
+            hideDisabledOnlyTrains={hideDisabledOnlyTrains}
+            onToggleHideDisabledOnly={setHideDisabledOnlyTrains}
+          />
           
           {/* Search results */}
           {currentSearch && (
@@ -179,7 +195,9 @@ function App() {
               journeys={journeys}
               fromStation={currentSearch.from}
               toStation={currentSearch.to}
+              departureDate={currentSearch.departureDate}
               loading={loading}
+              hideDisabledOnlyTrains={hideDisabledOnlyTrains}
             />
           )}
           
@@ -233,7 +251,7 @@ function App() {
                 Bu uygulama TCDD'nin resmi bir uygulaması değildir. 
                 Bilet satın almak için{' '}
                 <a 
-                  href="https://bilet.tcdd.gov.tr" 
+                  href="https://ebilet.tcddtasimacilik.gov.tr/" 
                   target="_blank" 
                   rel="noopener noreferrer"
                   className="text-primary hover:underline"

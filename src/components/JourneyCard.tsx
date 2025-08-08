@@ -4,6 +4,8 @@ import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
 import { Journey, formatDuration, formatPrice } from '@/lib/railway-data';
 import { Train, Clock, ArrowRight, MapPin, Users } from '@phosphor-icons/react';
+import { cn } from '@/lib/utils';
+import { SeatCategoryDisplay } from './SeatCategoryDisplay';
 
 interface JourneyCardProps {
   journey: Journey;
@@ -25,18 +27,6 @@ export function JourneyCard({ journey, onClick }: JourneyCardProps) {
       case 1: return '1 Aktarma';
       default: return `${count} Aktarma`;
     }
-  };
-
-  const getSeatsBadgeVariant = (seats?: number) => {
-    if (!seats || seats === 0) return 'destructive';
-    if (seats < 10) return 'secondary';
-    return 'default';
-  };
-
-  const getSeatsText = (seats?: number) => {
-    if (!seats || seats === 0) return 'Koltuk Yok';
-    if (seats === 1) return '1 Koltuk';
-    return `${seats} Koltuk`;
   };
 
   return (
@@ -101,18 +91,11 @@ export function JourneyCard({ journey, onClick }: JourneyCardProps) {
                 </div>
                 
                 <div className="flex items-center gap-3">
-                  {/* Available seats badge */}
-                  {segment.availableSeats !== undefined && (
-                    <div className="flex items-center gap-1">
-                      <Users size={14} className="text-muted-foreground" />
-                      <Badge 
-                        variant={getSeatsBadgeVariant(segment.availableSeats)}
-                        className="text-xs"
-                      >
-                        {getSeatsText(segment.availableSeats)}
-                      </Badge>
-                    </div>
-                  )}
+                  {/* Available seats with categories */}
+                  <SeatCategoryDisplay 
+                    seatCategories={segment.seatCategories}
+                    totalSeats={segment.availableSeats}
+                  />
                   
                   <div className="text-sm text-muted-foreground">
                     {formatDuration(segment.duration)}
