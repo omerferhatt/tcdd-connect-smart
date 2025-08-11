@@ -2,8 +2,6 @@ import React, { useState } from 'react';
 import { useKV } from './hooks/use-kv';
 import { SearchForm } from './components/SearchForm';
 import { SearchResults } from './components/SearchResults';
-import { ApiSettingsDialog } from './components/ApiSettingsDialog';
-import { ApiDebugDialog } from './components/ApiDebugDialog';
 import { Station, Journey, searchTrainsWithAPI } from './lib/railway-data';
 import TCDDApiService from './lib/tcdd-api';
 import { Toaster } from '@/components/ui/sonner';
@@ -21,9 +19,9 @@ function App() {
   const [currentSearch, setCurrentSearch] = useState<{ from: Station; to: Station; departureDate: Date } | null>(null);
   const [loading, setLoading] = useState(false);
   const [searchHistory, setSearchHistory] = useKV<SearchHistory[]>('search-history', []);
-  const [useRealAPI, setUseRealAPI] = useKV<boolean>('use-real-api', true);
-  const [showSoldOutTrains, setShowSoldOutTrains] = useKV<boolean>('show-sold-out-trains', false);
-  const [enableSameTrainConnections, setEnableSameTrainConnections] = useKV<boolean>('enable-same-train-connections', true);
+  // Removed feature toggles: always use live data
+  const [showSoldOutTrains] = useKV<boolean>('show-sold-out-trains', false); // retain persistence but no UI
+  const [enableSameTrainConnections] = useKV<boolean>('enable-same-train-connections', true);
   const [hideDisabledOnlyTrains, setHideDisabledOnlyTrains] = useKV<boolean>('hide-disabled-only-trains', false);
   const [apiStatus, setApiStatus] = useState<'unknown' | 'connected' | 'error'>('unknown');
 
@@ -41,36 +39,22 @@ function App() {
       
       let results: Journey[] = [];
       
-      if (useRealAPI) {
-        // Try real API only - no automatic fallback
-        try {
-          results = await searchTrainsWithAPI(fromStation, toStation, departureDate);
-          setApiStatus('connected');
-          if (results.length > 0) {
-            toast.success('TCDD API\'den gerçek veriler alındı');
-          } else {
-            toast.info('TCDD API\'den sonuç gelmedi');
-          }
-        } catch (error) {
-          setApiStatus('error');
-          console.error('API Error Details:', error);
-          
-          const errorMessage = error instanceof Error ? error.message : 'Bilinmeyen hata';
-          if (errorMessage.includes('Authentication')) {
-            toast.error('TCDD API kimlik doğrulama hatası. API Ayarları\'ndan geçerli token girin.');
-          } else {
-            toast.error('TCDD API\'ye bağlanılamadı. Lütfen internet bağlantınızı kontrol edin veya API Ayarları\'ndan demo modu aktif edin.');
-          }
-          
-          // Don't fallback automatically - let user decide
-          results = [];
+      try {
+        results = await searchTrainsWithAPI(fromStation, toStation, departureDate);
+        setApiStatus('connected');
+        if (results.length === 0) {
+          toast.info('Sefer bulunamadı');
         }
-      } else {
-        // Use mock data only when explicitly disabled
-        const { findConnectedRoutes } = await import('./lib/railway-data');
-        results = findConnectedRoutes(fromStation.id, toStation.id, 2);
-        setApiStatus('unknown');
-        toast.info('Demo modu aktif - örnek veriler kullanılıyor');
+      } catch (error) {
+        setApiStatus('error');
+        console.error('Veri alma hatası:', error);
+        const errorMessage = error instanceof Error ? error.message : 'Bilinmeyen hata';
+        if (errorMessage.toLowerCase().includes('auth')) {
+          toast.error('Yetkilendirme hatası: oturum gerektirebilir.');
+        } else {
+          toast.error('Veri alınamadı. Daha sonra tekrar deneyin.');
+        }
+        results = [];
       }
       
       setJourneys(results);
@@ -91,11 +75,7 @@ function App() {
       });
       
       if (results.length === 0) {
-        if (useRealAPI && apiStatus === 'error') {
-          toast.error(`API hatası nedeniyle sonuç alınamadı. Demo modu için API Ayarları'ndan geçiş yapabilirsiniz.`);
-        } else {
-          toast.error(`${fromStation.name} - ${toStation.name} arası sefer bulunamadı`);
-        }
+  toast.error(`${fromStation.name} - ${toStation.name} arası sefer bulunamadı`);
       } else {
         const directCount = results.filter(j => j.connectionCount === 0).length;
         const connectedCount = results.filter(j => j.connectionCount > 0).length;
@@ -134,44 +114,9 @@ function App() {
             </div>
             
             {/* API Status and Settings */}
-            <div className="flex flex-wrap items-center justify-center gap-2 text-sm">
-              <div className="flex items-center gap-2">
-                <div className={`w-2 h-2 rounded-full ${
-                  apiStatus === 'connected' ? 'bg-green-500' : 
-                  apiStatus === 'error' ? 'bg-red-500' : 'bg-gray-400'
-                }`} />
-                <span className="text-muted-foreground">
-                  {apiStatus === 'connected' ? 'Gerçek API Bağlı' : 
-                   apiStatus === 'error' ? 'API Hatası' : 
-                   useRealAPI ? 'Gerçek API Modu' : 'Demo Modu'}
-                </span>
-              </div>
-              
-              <div className="flex gap-2">
-                <ApiSettingsDialog 
-                  onAuthSuccess={() => {
-                    setApiStatus('connected');
-                    toast.success('API bağlantısı kuruldu!');
-                  }}
-                  useRealAPI={useRealAPI}
-                  onToggleAPI={setUseRealAPI}
-                  showSoldOutTrains={showSoldOutTrains}
-                  onToggleSoldOutTrains={setShowSoldOutTrains}
-                  enableSameTrainConnections={enableSameTrainConnections}
-                  onToggleSameTrainConnections={setEnableSameTrainConnections}
-                />
-                
-                <ApiDebugDialog 
-                  fromStation={currentSearch?.from}
-                  toStation={currentSearch?.to}
-                />
-              </div>
-            </div>
-            
-            {useRealAPI && (
-              <div className="text-xs text-muted-foreground bg-muted/50 rounded p-2 max-w-md mx-auto">
-                ✅ Gerçek TCDD API aktif! Geliştirici token kullanılıyor.
-                API hata verirse sonuç gösterilmez. Demo modu için API Ayarları'ndan geçiş yapabilirsiniz.
+            {apiStatus === 'error' && (
+              <div className="text-xs text-destructive bg-muted/50 border border-destructive/30 rounded p-2 max-w-md mx-auto">
+                Canlı veriye ulaşılamadı. Daha sonra tekrar deneyin.
               </div>
             )}
           </div>
@@ -262,9 +207,8 @@ function App() {
               </p>
               
               <div className="text-xs bg-muted rounded p-2 max-w-2xl mx-auto">
-                <strong>Akıllı Rota Sistemi:</strong> Bu uygulama TCDD'nin gerçek istasyon ağı verilerini kullanarak 
-                node-based graph algoritmasıyla aktarmalı rotalar bulur. Geliştirici API token'ı otomatik yapılandırılmıştır. 
-                API hata verirse demo mod için API Ayarları'nı kullanın.
+                <strong>Akıllı Rota Sistemi:</strong> Bu uygulama istasyon ağı üzerinden grafik tabanlı algoritma ile
+                aktarmalı rotalar üretir. Veri erişimi başarısız olursa lütfen daha sonra tekrar deneyin.
               </div>
             </div>
           </div>
