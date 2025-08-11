@@ -13,4 +13,5 @@ export default defineConfig({
       '@': resolve(projectRoot, 'src')
     }
   },
+  base: '/tcdd-connect-smart/',
 });
